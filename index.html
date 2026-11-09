@@ -2,120 +2,116 @@
 <html lang="sv">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Museum Aurora</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Museum Aurora 3D</title>
 <style>
-:root{--bg:#14121a;--ink:#f3ecdf;--mut:#b9b0a0;--gold:#f2c14e;--panel:#221f2b;--line:#3a3545;--paper:#f4ecd8;--paperInk:#2b2620}
+:root{--bg:#0b0a10;--ink:#f3ecdf;--mut:#b9b0a0;--gold:#f2c14e;--panel:rgba(26,23,34,.86);--line:#3a3545;--paper:#f4ecd8;--paperInk:#2b2620;--red:#ff5a5f}
 *{box-sizing:border-box}
-html,body{margin:0;min-height:100%}
-body{background:radial-gradient(ellipse at top,#241f30,var(--bg) 60%);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;flex-direction:column;align-items:center;min-height:100vh}
-.hud{width:100%;max-width:1100px;display:flex;align-items:center;justify-content:space-between;gap:10px 16px;padding:14px 16px;flex-wrap:wrap}
-.room-name{font:600 22px/1.2 Georgia,"Times New Roman",serif;letter-spacing:.01em}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
+.hud{position:fixed;left:0;right:0;top:0;display:flex;align-items:flex-start;justify-content:space-between;gap:10px 16px;padding:14px 16px;flex-wrap:wrap;pointer-events:none;z-index:5;background:linear-gradient(rgba(0,0,0,.55),transparent)}
+.hud > *{pointer-events:auto}
+.room-name{font:600 22px/1.2 Georgia,"Times New Roman",serif;text-shadow:0 2px 8px rgba(0,0,0,.6)}
 .room-name small{display:block;font:400 11px/1.6 system-ui,sans-serif;color:var(--mut);letter-spacing:.16em;text-transform:uppercase}
 .stats{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .pill{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:5px 12px;font-size:14px;display:flex;align-items:center;gap:6px;font-variant-numeric:tabular-nums}
 .pill b{color:var(--gold)}
 button{font:inherit;font-size:14px;color:inherit;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:5px 14px;cursor:pointer}
 button:hover,button:focus-visible{border-color:var(--gold);outline:none}
-button.primary{background:var(--gold);color:#2a2112;border-color:var(--gold);font-weight:600;padding:9px 22px;font-size:16px}
+button:disabled{opacity:.6;cursor:wait}
+button.primary{background:var(--gold);color:#2a2112;border-color:var(--gold);font-weight:600;padding:10px 24px;font-size:16px}
 button.primary:hover{filter:brightness(1.08)}
-.stage{position:relative;width:100%;max-width:1100px;padding:0 16px}
-.frame{position:relative;border-radius:12px;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.55);background:#000}
-#scene{display:block;width:100%;height:auto;user-select:none;-webkit-user-select:none;touch-action:manipulation}
-#fade{position:absolute;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity .32s ease}
-#fade.on{opacity:1}
-.help{max-width:1100px;width:100%;padding:12px 16px 32px;color:var(--mut);font-size:14px;text-align:center}
-.help a{color:var(--mut)}
-/* svg interaction */
-.hot{cursor:pointer}
-.hot:hover{filter:brightness(1.18) drop-shadow(0 0 6px rgba(255,214,130,.85))}
-.leg{transform-box:fill-box;transform-origin:50% 0}
-#vis.walk .leg.l{animation:step .32s ease-in-out infinite alternate}
-#vis.walk .leg.r{animation:step .32s ease-in-out infinite alternate-reverse}
-#vis.walk .bob{animation:bob .16s ease-in-out infinite alternate}
-@keyframes step{from{transform:rotate(20deg)}to{transform:rotate(-20deg)}}
-@keyframes bob{from{transform:translateY(0)}to{transform:translateY(-2px)}}
-.twinkle{animation:tw 1.6s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
-@keyframes tw{0%,100%{opacity:.75;transform:scale(.9)}50%{opacity:1;transform:scale(1.08)}}
-.glow{animation:gl 3s ease-in-out infinite}
-@keyframes gl{0%,100%{opacity:.55}50%{opacity:1}}
-.flicker{animation:fl .18s steps(2) infinite}
-@keyframes fl{to{transform:translateX(3px)}}
-.sway{transform-box:view-box;animation:sw 6s ease-in-out infinite alternate}
-@keyframes sw{from{transform:rotate(-1.2deg)}to{transform:rotate(1.2deg)}}
-/* plaque + overlays */
-.plaque{position:absolute;left:50%;top:14px;transform:translate(-50%,-12px);width:min(560px,calc(100% - 32px));background:var(--paper);color:var(--paperInk);border-radius:8px;padding:16px 20px 14px;box-shadow:0 16px 50px rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:20;border-top:4px solid #b8913f}
+#prompt{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:8px 18px;font-size:15px;z-index:5;white-space:nowrap;opacity:0;transition:opacity .15s;pointer-events:none;max-width:calc(100% - 32px);overflow:hidden;text-overflow:ellipsis}
+#prompt.show{opacity:1}
+#prompt kbd{display:inline-block;background:var(--gold);color:#2a2112;border-radius:5px;padding:0 7px;font:700 13px/20px system-ui,sans-serif;margin-right:8px}
+#prompt.danger{border-color:var(--red);color:#ffd6d6}
+#prompt.danger kbd{background:var(--red);color:#fff}
+#toast{position:fixed;left:50%;top:22%;transform:translateX(-50%);font:600 34px/1.2 Georgia,serif;letter-spacing:.02em;text-shadow:0 3px 18px rgba(0,0,0,.8);opacity:0;transition:opacity .5s;pointer-events:none;z-index:4;text-align:center;white-space:nowrap}
+#toast small{display:block;font:400 12px/2 system-ui,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:var(--gold)}
+#toast.show{opacity:1}
+#redFlash{position:fixed;inset:0;background:#c1121f;opacity:0;pointer-events:none;mix-blend-mode:multiply;z-index:2}
+#redFlash.on{animation:alarm .45s ease-in-out infinite alternate}
+@keyframes alarm{from{opacity:0}to{opacity:.5}}
+.plaque{position:fixed;left:50%;top:84px;transform:translate(-50%,-10px);width:min(540px,calc(100% - 32px));background:var(--paper);color:var(--paperInk);border-radius:8px;padding:16px 20px 12px;box-shadow:0 16px 50px rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:6;border-top:4px solid #b8913f}
 .plaque.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
 .plaque h3{margin:0 0 2px;font:600 20px/1.25 Georgia,serif}
 .plaque .meta{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#7b6f5c;margin-bottom:8px}
-.plaque p{margin:0 0 10px;font-size:15px}
+.plaque p{margin:0 0 8px;font-size:15px}
 .plaque .close{float:right;background:transparent;border:1px solid #cdbf9f;color:var(--paperInk);font-size:13px;padding:3px 10px;margin:-4px -6px 0 8px}
-.overlay{position:fixed;inset:0;background:rgba(10,8,14,.78);display:flex;align-items:center;justify-content:center;padding:16px;z-index:30;backdrop-filter:blur(3px)}
+.overlay{position:fixed;inset:0;background:rgba(10,8,14,.72);display:flex;align-items:center;justify-content:center;padding:16px;z-index:10;backdrop-filter:blur(4px)}
 .overlay[hidden]{display:none}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;max-width:520px;width:100%;padding:28px 26px;text-align:center;box-shadow:0 30px 80px rgba(0,0,0,.6);max-height:calc(100vh - 32px);overflow:auto}
-.card h1,.card h2{font:600 30px/1.15 Georgia,serif;margin:6px 0 12px}
+.card{background:#1d1a26;border:1px solid var(--line);border-radius:14px;max-width:540px;width:100%;padding:28px 26px;text-align:center;box-shadow:0 30px 80px rgba(0,0,0,.6);max-height:calc(100vh - 32px);overflow:auto}
+.card h1,.card h2{font:600 32px/1.15 Georgia,serif;margin:6px 0 12px}
 .card h2{font-size:24px}
 .card .kicker{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold)}
 .card p{color:#d9d0c1;margin:0 0 14px}
-.card ul{text-align:left;color:#d9d0c1;margin:0 0 20px;padding-left:20px}
-.card li{margin:4px 0}
+.keys{display:grid;grid-template-columns:auto 1fr;gap:8px 14px;text-align:left;margin:4px auto 22px;max-width:400px;color:#d9d0c1;font-size:15px;align-items:center}
+.keys kbd{background:#2e2a3a;border:1px solid #4a4458;border-bottom-width:3px;border-radius:6px;padding:1px 8px;font:600 13px/22px system-ui,sans-serif;color:var(--ink);white-space:nowrap}
+.card.danger{border-color:#c1121f}
+.card.danger .kicker{color:var(--red)}
+.card.danger h1{color:var(--red);letter-spacing:.04em}
+#loading{font-size:13px;color:var(--mut);margin-top:12px;min-height:20px}
 .mapgrid{position:relative;margin:8px auto 18px;width:100%;max-width:400px;aspect-ratio:4/3}
-.mapcell{position:absolute;width:23%;height:30%;border-radius:8px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;text-align:center;font-size:12px;line-height:1.2;padding:4px;background:#1a1822;color:#6b6476}
+.mapcell{position:absolute;width:23%;height:30%;border-radius:8px;border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-size:12px;line-height:1.2;padding:4px;background:#15131c;color:#6b6476}
 .mapcell.seen{background:#3a3346;color:var(--ink)}
 .mapcell.here{background:var(--gold);color:#2a2112;font-weight:600;border-color:var(--gold)}
 .mapcell .s{display:block;font-size:11px;opacity:.85}
 .mapline{position:absolute;background:var(--line)}
-@media (max-width:700px){.plaque{position:static;transform:none;width:auto;margin:12px 0 0;display:none}.plaque.show{display:block;transform:none}
-.room-name{font-size:18px}.card{padding:22px 18px}.card h1{font-size:26px}}
-.frame.shake{animation:shake .45s linear}
-@keyframes shake{0%,100%{transform:translate(0,0)}20%{transform:translate(-10px,6px)}40%{transform:translate(9px,-7px)}60%{transform:translate(-7px,-4px)}80%{transform:translate(6px,5px)}}
-#redFlash{position:absolute;inset:0;background:#c1121f;opacity:0;pointer-events:none;mix-blend-mode:multiply}
-#redFlash.on{animation:alarm .5s ease-in-out infinite alternate}
-@keyframes alarm{from{opacity:0}to{opacity:.55}}
-.card.danger{border-color:#c1121f}
-.card.danger .kicker{color:#ff5a5f}
-.card.danger h1{color:#ff5a5f;letter-spacing:.04em}
-.blink{animation:blink 1s steps(2) infinite}
-@keyframes blink{50%{opacity:.35}}
-@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.foot{position:fixed;right:12px;bottom:8px;font-size:12px;color:var(--mut);z-index:5}
+.foot a{color:var(--mut)}
+#touch{display:none}
+@media (pointer:coarse){
+  #touch{display:block}
+  #stick{position:fixed;left:24px;bottom:28px;width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.2);z-index:6;touch-action:none}
+  #nub{position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px;border-radius:50%;background:rgba(242,193,78,.65)}
+  #useBtn{position:fixed;right:28px;bottom:44px;width:76px;height:76px;border-radius:50%;font:700 22px/1 system-ui,sans-serif;background:rgba(242,193,78,.85);color:#2a2112;border:none;z-index:6;touch-action:none}
+  #prompt{bottom:180px}
+  .foot{display:none}
+}
+@media (max-width:600px){.room-name{font-size:18px}.card{padding:22px 18px}.card h1{font-size:26px}#toast{font-size:26px}}
+@media (prefers-reduced-motion:reduce){#redFlash.on{animation:none;opacity:.3}}
 </style>
 </head>
 <body>
+<canvas id="c" tabindex="0"></canvas>
+<div id="redFlash"></div>
+
 <header class="hud">
-  <div class="room-name" id="roomName"><small id="roomSub">Museum Aurora</small><span id="roomTitle">Entréhallen</span></div>
+  <div class="room-name"><small id="roomSub">Museum Aurora</small><span id="roomTitle">Entréhallen</span></div>
   <div class="stats">
     <span class="pill" title="Hittade guldstjärnor">★ <b id="starCount">0</b>/<span id="starTotal">6</span></span>
     <span class="pill" title="Tid">⏱ <span id="timer">0:00</span></span>
-    <button id="mapBtn" type="button">Karta</button>
+    <button id="mapBtn" type="button">Karta (M)</button>
     <button id="soundBtn" type="button" aria-pressed="true">Ljud på</button>
   </div>
 </header>
-<main class="stage">
-  <div class="frame">
-    <svg id="scene" viewBox="0 0 1000 600" role="img" aria-label="Museisal"></svg>
-    <div id="redFlash"></div>
-    <div id="fade"></div>
-  </div>
-    <div class="plaque" id="plaque" role="dialog" aria-live="polite">
-      <button class="close" id="plaqueClose" type="button">Stäng</button>
-      <h3 id="plaqueTitle"></h3>
-      <div class="meta" id="plaqueMeta"></div>
-      <p id="plaqueText"></p>
-    </div>
-</main>
-<p class="help">Klicka på dörrar och pilar för att gå mellan salarna. Klicka på föremål för att läsa skylten. · <a href="instructions.html">Instruktioner för laget</a></p>
+
+<div id="toast"></div>
+<div id="prompt"></div>
+
+<div class="plaque" id="plaque" role="dialog" aria-live="polite">
+  <button class="close" id="plaqueClose" type="button">Stäng</button>
+  <h3 id="plaqueTitle"></h3>
+  <div class="meta" id="plaqueMeta"></div>
+  <p id="plaqueText"></p>
+</div>
+
+<div id="touch"><div id="stick"><div id="nub"></div></div><button id="useBtn" type="button">E</button></div>
 
 <div class="overlay" id="intro">
   <div class="card">
     <div class="kicker">Nattskift</div>
     <h1>Museum Aurora</h1>
     <p>Du är nattvakt. Någon har gömt <b>sex guldstjärnor</b> i museets salar, och bara när alla är hittade öppnas valvet till skattkammaren.</p>
-    <ul>
-      <li>Klicka på en <b>dörr</b> eller <b>pil</b> för att gå till nästa sal.</li>
-      <li>Klicka på <b>föremål</b> för att läsa skylten.</li>
-      <li>Leta noga. Stjärnorna glimmar svagt.</li>
-    </ul>
-    <button class="primary" id="startBtn" type="button">Börja ronden</button>
+    <div class="keys">
+      <span><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd></span><span>Gå</span>
+      <span><kbd>Shift</kbd></span><span>Spring</span>
+      <span><kbd>Mus</kbd></span><span>Titta runt (klicka i spelet för att låsa musen, Esc släpper)</span>
+      <span><kbd>E</kbd></span><span>Läs skylten / använd</span>
+      <span><kbd>M</kbd></span><span>Karta</span>
+    </div>
+    <button class="primary" id="startBtn" type="button" disabled>Laddar…</button>
+    <div id="loading"></div>
   </div>
 </div>
 
@@ -130,9 +126,9 @@ button.primary:hover{filter:brightness(1.08)}
 
 <div class="overlay" id="gameover" hidden>
   <div class="card danger">
-    <div class="kicker">Du klickade på knappen</div>
+    <div class="kicker">Du tryckte på knappen</div>
     <h1>GAME OVER</h1>
-    <p>Det stod tydligt att du inte skulle klicka. Aurorasaurus borealis fick ett nytt huvud och åt upp ditt.</p>
+    <p>Det stod tydligt att du inte skulle trycka. Aurorasaurus borealis fick ett nytt huvud och bet av ditt.</p>
     <button class="primary" id="retryBtn" type="button">Försök igen</button>
   </div>
 </div>
@@ -146,642 +142,8 @@ button.primary:hover{filter:brightness(1.08)}
   </div>
 </div>
 
-<script>
-(() => {
-'use strict';
-// ---------- helpers ----------
-const $ = id => document.getElementById(id);
-function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
-const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-function starPts(cx, cy, R, r){let p=[];for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,rad=i%2?r:R;p.push((cx+Math.cos(a)*rad).toFixed(1)+','+(cy+Math.sin(a)*rad).toFixed(1))}return p.join(' ')}
+<div class="foot"><a href="index-2d.html">2D-versionen</a> · <a href="instructions.html">Instruktioner för laget</a></div>
 
-// ---------- paintings ----------
-function art(kind, w, h, seed){
-  const R = rng(seed);
-  switch(kind){
-    case 'landscape': return `
-      <defs><linearGradient id="sky${seed}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f2a65a"/><stop offset="1" stop-color="#f8e2ad"/></linearGradient></defs>
-      <rect width="${w}" height="${h}" fill="url(#sky${seed})"/>
-      <circle cx="${w*.68}" cy="${h*.38}" r="${h*.11}" fill="#fff4d6"/>
-      <path d="M0 ${h*.64} Q ${w*.3} ${h*.44} ${w*.55} ${h*.6} T ${w} ${h*.55} V ${h} H 0Z" fill="#7d9a62"/>
-      <path d="M0 ${h*.74} Q ${w*.5} ${h*.66} ${w} ${h*.76} V ${h} H 0Z" fill="#5b8fa8"/>
-      <path d="M0 ${h*.86} Q ${w*.4} ${h*.78} ${w} ${h*.9} V ${h} H 0Z" fill="#46663f"/>
-      <path d="M${w*.2} ${h*.86} v-${h*.2} m0 ${h*.04} l-${w*.06} ${h*.06} m${w*.06} -${h*.02} l${w*.05} ${h*.05}" stroke="#2f3b25" stroke-width="3" fill="none"/>
-      <circle cx="${w*.2}" cy="${h*.64}" r="${w*.08}" fill="#3e5a34"/>`;
-    case 'portrait': return `
-      <rect width="${w}" height="${h}" fill="#2f3d36"/>
-      <rect width="${w}" height="${h}" fill="url(#vig)" opacity=".6"/>
-      <path d="M${w*.12} ${h} Q ${w*.5} ${h*.58} ${w*.88} ${h}Z" fill="#6a2c35"/>
-      <path d="M${w*.42} ${h*.62} h${w*.16} v${h*.1} h-${w*.16}Z" fill="#e2b892"/>
-      <ellipse cx="${w*.5}" cy="${h*.45}" rx="${w*.17}" ry="${h*.17}" fill="#efc9a2"/>
-      <path d="M${w*.32} ${h*.45} Q ${w*.3} ${h*.2} ${w*.5} ${h*.22} Q ${w*.72} ${h*.2} ${w*.68} ${h*.46} Q ${w*.66} ${h*.3} ${w*.5} ${h*.31} Q ${w*.36} ${h*.3} ${w*.32} ${h*.45}Z" fill="#3a2418"/>
-      <circle cx="${w*.44}" cy="${h*.45}" r="2.5" fill="#2a1d14"/><circle cx="${w*.56}" cy="${h*.45}" r="2.5" fill="#2a1d14"/>
-      <path d="M${w*.45} ${h*.54} Q ${w*.5} ${h*.565} ${w*.55} ${h*.54}" stroke="#a5604f" stroke-width="2" fill="none"/>
-      <circle cx="${w*.5}" cy="${h*.7}" r="${w*.03}" fill="#f2d27a"/>`;
-    case 'sea': {
-      let waves='';
-      for(let i=0;i<6;i++){const y=h*.55+i*h*.08;waves+=`<path d="M0 ${y} q ${w/8} -8 ${w/4} 0 t ${w/4} 0 t ${w/4} 0 t ${w/4} 0" stroke="#e8f1f5" stroke-opacity="${.25+i*.08}" stroke-width="2" fill="none"/>`}
-      return `<rect width="${w}" height="${h*.55}" fill="#9bb7c9"/><rect y="${h*.55}" width="${w}" height="${h*.45}" fill="#2f5b78"/>
-      <path d="M0 ${h*.3} q ${w*.25} -${h*.12} ${w*.5} 0 t ${w*.5} 0" fill="#c9d8e2" opacity=".7"/>${waves}
-      <path d="M${w*.38} ${h*.6} h${w*.3} l-${w*.05} ${h*.06} h-${w*.2}Z" fill="#5a3a26"/>
-      <path d="M${w*.52} ${h*.6} V ${h*.3} L ${w*.68} ${h*.56}Z" fill="#f4efe3"/><path d="M${w*.5} ${h*.58} V ${h*.36} L ${w*.4} ${h*.56}Z" fill="#e6dccb"/>`;
-    }
-    case 'abstract': {
-      const pal=['#e4572e','#f3a712','#29335c','#a8c686','#efe9df','#db2b39','#3c91e6'];
-      let s=`<rect width="${w}" height="${h}" fill="#efe6d4"/>`;
-      for(let i=0;i<9;i++){const c=pal[Math.floor(R()*pal.length)];
-        if(R()<.5) s+=`<rect x="${R()*w*.8}" y="${R()*h*.8}" width="${w*(.15+R()*.4)}" height="${h*(.08+R()*.3)}" fill="${c}" opacity=".9"/>`;
-        else s+=`<circle cx="${R()*w}" cy="${R()*h}" r="${w*(.06+R()*.18)}" fill="${c}" opacity=".85"/>`;}
-      s+=`<path d="M0 ${h*.7} L ${w} ${h*.3}" stroke="#1b1b1b" stroke-width="4"/><path d="M${w*.3} 0 V ${h}" stroke="#1b1b1b" stroke-width="3"/>`;
-      return s;
-    }
-    case 'blank': return `<rect width="${w}" height="${h}" fill="#fbfaf6"/><path d="M${w*.15} ${h*.82} l ${w*.02} -${h*.012}" stroke="#d8d2c4" stroke-width="1.5"/>`;
-  }
-  return '';
-}
-function painting(it){
-  const {x,y,w,h}=it, b=it.frame===false?0:12, iw=w-2*b, ih=h-2*b;
-  const frame = it.frame===false
-    ? `<rect x="${x+4}" y="${y+6}" width="${w}" height="${h}" fill="#000" opacity=".18"/>`
-    : `<rect x="${x+5}" y="${y+7}" width="${w}" height="${h}" fill="#000" opacity=".28"/>
-       <rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#c9a24b" stroke="#7d5f22" stroke-width="2"/>
-       <rect x="${x+4}" y="${y+4}" width="${w-8}" height="${h-8}" fill="none" stroke="#f1d78c" stroke-width="2" opacity=".7"/>`;
-  return frame+`<svg x="${x+b}" y="${y+b}" width="${iw}" height="${ih}" viewBox="0 0 ${iw} ${ih}">${art(it.art,iw,ih,it.seed||1)}</svg>
-    <rect x="${x+w/2-18}" y="${y+h+12}" width="36" height="14" rx="2" fill="#efe7d6" stroke="#bfb39b"/>`;
-}
-
-// ---------- props ----------
-const D = {
-  painting,
-  banner: it => `<rect x="${it.x-150}" y="${it.y}" width="300" height="46" rx="4" fill="#2b2533"/><text x="${it.x}" y="${it.y+31}" text-anchor="middle" font-family="Georgia,serif" font-size="24" letter-spacing="6" fill="#f2c14e">${esc(it.text)}</text>`,
-  bench: it => `<ellipse cx="${it.x+it.w/2}" cy="526" rx="${it.w/2+12}" ry="7" fill="#000" opacity=".22"/>
-    <rect x="${it.x+14}" y="482" width="10" height="42" fill="#3d2a1a"/><rect x="${it.x+it.w-24}" y="482" width="10" height="42" fill="#3d2a1a"/>
-    <rect x="${it.x}" y="468" width="${it.w}" height="16" rx="3" fill="#6b4a2f"/><rect x="${it.x}" y="464" width="${it.w}" height="7" rx="3" fill="#8f6743"/>`,
-  desk: it => `<ellipse cx="${it.x+90}" cy="452" rx="105" ry="8" fill="#000" opacity=".2"/>
-    <rect x="${it.x}" y="336" width="180" height="114" fill="#6e4b2d"/><rect x="${it.x}" y="336" width="180" height="114" fill="url(#woodGrain)" opacity=".35"/>
-    <rect x="${it.x-8}" y="326" width="196" height="14" rx="2" fill="#8f6743"/>
-    <rect x="${it.x+20}" y="356" width="140" height="70" rx="3" fill="none" stroke="#523620" stroke-width="3"/>
-    <text x="${it.x+90}" y="398" text-anchor="middle" font-family="Georgia,serif" font-size="15" fill="#e9d6b0">BILJETTER</text>
-    <path d="M${it.x+40} 326 a12 12 0 0 1 24 0Z" fill="#d6b04e"/><rect x="${it.x+36}" y="324" width="32" height="4" rx="2" fill="#a3842f"/><circle cx="${it.x+52}" cy="312" r="3" fill="#d6b04e"/>
-    <rect x="${it.x+110}" y="314" width="40" height="12" fill="#f4efe3" transform="rotate(-6 ${it.x+130} 320)"/>`,
-  plant: it => `<ellipse cx="${it.x}" cy="448" rx="38" ry="7" fill="#000" opacity=".22"/>
-    <path d="M${it.x-26} 390 h52 l-8 56 h-36Z" fill="#a4553a"/><rect x="${it.x-30}" y="384" width="60" height="10" rx="2" fill="#bd6646"/>
-    <g class="sway" style="transform-origin:${it.x}px 388px">
-    <path d="M${it.x} 388 C ${it.x-10} 340 ${it.x-60} 320 ${it.x-70} 290 C ${it.x-40} 300 ${it.x-10} 330 ${it.x} 388Z" fill="#3f7a4a"/>
-    <path d="M${it.x} 388 C ${it.x+10} 330 ${it.x+50} 300 ${it.x+64} 270 C ${it.x+60} 310 ${it.x+20} 340 ${it.x} 388Z" fill="#4f8f58"/>
-    <path d="M${it.x} 388 C ${it.x-6} 330 ${it.x+4} 280 ${it.x-6} 240 C ${it.x+16} 280 ${it.x+12} 330 ${it.x} 388Z" fill="#5fa266"/>
-    <path d="M${it.x} 388 C ${it.x-20} 360 ${it.x-50} 360 ${it.x-62} 350 C ${it.x-40} 345 ${it.x-15} 360 ${it.x} 388Z" fill="#356b40"/>
-    <path d="M${it.x} 388 C ${it.x+20} 360 ${it.x+48} 350 ${it.x+66} 344 C ${it.x+45} 360 ${it.x+20} 368 ${it.x} 388Z" fill="#356b40"/></g>`,
-  mapboard: it => {
-    const {x,y}=it; let r='';
-    const cells=[[1,0],[0,1],[1,1],[0,2],[1,2],[2,2],[3,2]];
-    cells.forEach(([c,rw])=>{r+=`<rect x="${x+14+c*24}" y="${y+28+rw*26}" width="20" height="22" rx="2" fill="${c===1&&rw===2?'#f2c14e':'#cfc4ae'}"/>`});
-    return `<rect x="${x+4}" y="${y+6}" width="124" height="130" fill="#000" opacity=".2"/><rect x="${x}" y="${y}" width="124" height="130" rx="4" fill="#2f3b4a" stroke="#1d2530" stroke-width="3"/>
-    <text x="${x+62}" y="${y+19}" text-anchor="middle" font-size="11" letter-spacing="2" fill="#e8dfcd" font-family="system-ui,sans-serif">PLANRITNING</text>${r}
-    <text x="${x+38}" y="${y+124}" text-anchor="middle" font-size="9" fill="#f2c14e" font-family="system-ui,sans-serif">DU ÄR HÄR</text>`;
-  },
-  pedestal: it => {
-    const {x}=it, top=it.top||360; let sc='';
-    if(it.sculpt==='cube') sc=`<g transform="rotate(12 ${x} ${top-48})"><rect x="${x-40}" y="${top-88}" width="80" height="80" fill="#d63a3a"/><path d="M${x-40} ${top-88} l18 -14 h80 l-18 14Z" fill="#ef6a5a"/><path d="M${x+40} ${top-88} l18 -14 v80 l-18 14Z" fill="#a82a2e"/></g>`;
-    if(it.sculpt==='head') sc=`<path d="M${x-26} ${top} q -6 -30 6 -44 q -16 -40 20 -54 q 36 14 20 54 q 12 14 6 44Z" fill="#e4ddcf"/><path d="M${x+4} ${top-90} q 10 4 14 18" stroke="#c8beac" stroke-width="3" fill="none"/><path d="M${x-8} ${top-68} h8 M${x+8} ${top-68} h8" stroke="#a69c88" stroke-width="3"/>`;
-    if(it.sculpt==='twist') sc=`<path d="M${x-10} ${top} C ${x-60} ${top-60} ${x+60} ${top-80} ${x} ${top-140} C ${x-30} ${top-110} ${x+40} ${top-60} ${x+10} ${top}Z" fill="#c8ccd2"/><path d="M${x} ${top-140} C ${x+10} ${top-100} ${x-30} ${top-60} ${x+10} ${top}" stroke="#8b9097" stroke-width="2" fill="none"/>`;
-    return `<ellipse cx="${x}" cy="452" rx="60" ry="8" fill="#000" opacity=".22"/>${sc}
-      <rect x="${x-45}" y="${top}" width="90" height="${450-top}" fill="#efebe3"/><rect x="${x-45}" y="${top}" width="90" height="${450-top}" fill="url(#pedShade)"/><rect x="${x-50}" y="${top-6}" width="100" height="10" fill="#f8f5ef"/>`;
-  },
-  mobile: it => {
-    const {x}=it;
-    return `<g class="sway" style="transform-origin:${x}px 24px">
-      <line x1="${x}" y1="24" x2="${x}" y2="120" stroke="#333" stroke-width="2"/>
-      <line x1="${x-110}" y1="120" x2="${x+90}" y2="120" stroke="#333" stroke-width="3"/>
-      <line x1="${x-110}" y1="120" x2="${x-110}" y2="190" stroke="#333"/><circle cx="${x-110}" cy="205" r="18" fill="#e4572e"/>
-      <line x1="${x+90}" y1="120" x2="${x+90}" y2="160" stroke="#333"/>
-      <line x1="${x+20}" y1="160" x2="${x+150}" y2="160" stroke="#333" stroke-width="3"/>
-      <line x1="${x+20}" y1="160" x2="${x+20}" y2="210" stroke="#333"/><ellipse cx="${x+20}" cy="226" rx="26" ry="14" fill="#29335c"/>
-      <line x1="${x+150}" y1="160" x2="${x+150}" y2="240" stroke="#333"/><path d="M${x+150} 240 l18 30 h-36Z" fill="#f3a712"/>
-      <line x1="${x-30}" y1="120" x2="${x-30}" y2="270" stroke="#333"/><rect x="${x-44}" y="270" width="28" height="28" fill="#111" transform="rotate(20 ${x-30} 284)"/>
-    </g>`;
-  },
-  tv: it => {
-    const {x}=it; let st='';const R=rng(7);
-    for(let i=0;i<40;i++) st+=`<rect x="${(R()*170).toFixed(0)}" y="${(R()*96).toFixed(0)}" width="${(4+R()*20).toFixed(0)}" height="2" fill="#fff" opacity="${(R()*.7).toFixed(2)}"/>`;
-    return `<ellipse cx="${x}" cy="452" rx="70" ry="8" fill="#000" opacity=".22"/>
-      <rect x="${x-8}" y="380" width="16" height="70" fill="#2a2a2a"/><rect x="${x-50}" y="444" width="100" height="8" fill="#2a2a2a"/>
-      <rect x="${x-100}" y="262" width="200" height="124" rx="8" fill="#1d1d1d"/>
-      <svg x="${x-85}" y="276" width="170" height="96" viewBox="0 0 170 96"><rect width="170" height="96" fill="#5d6772"/><g class="flicker">${st}</g>
-      <rect width="170" height="96" fill="url(#crt)"/></svg>
-      <circle cx="${x+86}" cy="378" r="2.5" fill="#e34c4c" class="glow"/>`;
-  },
-  dino: it => {
-    const o=it.x, bone='#efe5cf', bs='#c9bc9d';
-    let ribs='';
-    for(let i=0;i<8;i++){const sx=o+120+i*14, sy=286+i*2.4;ribs+=`<path d="M${sx} ${sy} q 8 ${30+(i<4?i*6:(7-i)*6)} -6 ${44+(i<4?i*7:(7-i)*7)}" stroke="${bone}" stroke-width="5" fill="none" stroke-linecap="round"/>`}
-    let vert='';
-    for(let i=0;i<22;i++){const t=i/21,px=o+86+t*270,py=278+Math.sin(t*Math.PI*.9)*8+t*t*70;vert+=`<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="${(6-t*3.6).toFixed(1)}" fill="${bone}" stroke="${bs}"/>`}
-    return `<ellipse cx="${o+200}" cy="474" rx="210" ry="10" fill="#000" opacity=".25"/>
-      <rect x="${o}" y="452" width="390" height="20" fill="#3b2f25"/><rect x="${o}" y="452" width="390" height="5" fill="#5a4838"/>
-      <path d="M${o+150} 452 V 300 M${o+260} 452 V 320" stroke="#666" stroke-width="3"/>
-      <path d="M${o+86} 278 C ${o+60} 260 ${o+60} 240 ${o+66} 228" stroke="${bone}" stroke-width="12" fill="none" stroke-linecap="round"/>
-      ${ribs}${vert}
-      <path d="M${o+220} 300 L ${o+206} 380 L ${o+232} 448 h 26" stroke="${bone}" stroke-width="11" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M${o+250} 304 L ${o+252} 382 L ${o+276} 446 h 22" stroke="${bone}" stroke-width="11" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M${o+110} 310 l -8 26 l 10 8" stroke="${bone}" stroke-width="6" fill="none" stroke-linecap="round"/>
-      <g id="dinoSkull"><path d="M${o+10} 214 q 10 -36 62 -32 q 26 6 24 34 q -2 22 -28 26 l -52 4 q -12 -14 -6 -32Z" fill="${bone}" stroke="${bs}" stroke-width="2"/>
-      <circle cx="${o+66}" cy="204" r="9" fill="#3b2f25"/><path d="M${o+30} 214 a 6 5 0 1 0 12 0 a 6 5 0 1 0 -12 0" fill="#3b2f25"/>
-      <path d="M${o+12} 236 q 30 12 72 -2" stroke="${bs}" stroke-width="3" fill="none"/>
-      <path d="M${o+20} 232 l3 7 l3 -7 l3 7 l3 -7 l3 7 l3 -7 l3 7 l3 -7 l3 7" stroke="#fffaf0" stroke-width="2" fill="none"/></g>
-      <path id="dinoNeck" d="" stroke="${bone}" stroke-width="12" fill="none" stroke-linecap="round"/>
-      <g id="dinoHead" transform="translate(${o+52} 206) scale(0)" pointer-events="none">
-        <defs><clipPath id="headClip"><ellipse cx="0" cy="0" rx="50" ry="58"/></clipPath></defs>
-        <image href="assets/dino-head.jpg" x="-75" y="-69" width="150" height="146" clip-path="url(#headClip)" preserveAspectRatio="none"/>
-        <ellipse cx="0" cy="0" rx="50" ry="58" fill="none" stroke="${bs}" stroke-width="3"/>
-        <path id="dinoTeeth" d="M-34 40 l6 14 l6 -14 l6 14 l6 -14 l6 14 l6 -14 l6 14 l6 -14 l6 14 l6 -14 l4 10" fill="#fffaf0" stroke="#3b2f25" stroke-width="1.5" opacity="0"/>
-      </g>`;
-  },
-  case: it => {
-    const {x}=it, cols=['#3c91e6','#f3a712','#e4572e','#7bc96f','#b06ad6','#f05d8a'];let bf='';const R=rng(3);
-    for(let r=0;r<2;r++)for(let c=0;c<3;c++){const bx=x+32+c*58,by=278+r*44,col=cols[(r*3+c)%6],s=.8+R()*.3;
-      bf+=`<g transform="translate(${bx} ${by}) scale(${s.toFixed(2)})"><path d="M0 0 l-16 -12 q -6 10 0 16 Z M0 0 l16 -12 q 6 10 0 16Z" fill="${col}"/><path d="M0 0 l-12 10 q 6 4 10 -2Z M0 0 l12 10 q -6 4 -10 -2Z" fill="${col}" opacity=".75"/><line x1="0" y1="-8" x2="0" y2="10" stroke="#222" stroke-width="2"/></g>`;}
-    return `<ellipse cx="${x+100}" cy="452" rx="110" ry="8" fill="#000" opacity=".22"/>
-      <rect x="${x+14}" y="360" width="10" height="90" fill="#4a3424"/><rect x="${x+176}" y="360" width="10" height="90" fill="#4a3424"/>
-      <rect x="${x}" y="246" width="200" height="118" fill="#f2ead8"/>${bf}
-      <rect x="${x}" y="246" width="200" height="118" fill="url(#glass)"/><rect x="${x}" y="246" width="200" height="118" fill="none" stroke="#5a4030" stroke-width="6"/>
-      <rect x="${x+60}" y="350" width="80" height="10" rx="1" fill="#efe7d6"/>`;
-  },
-  crystal: it => {
-    const {x}=it, c=it.color, top=356;
-    return `<ellipse cx="${x}" cy="452" rx="58" ry="8" fill="#000" opacity=".35"/>
-      <ellipse cx="${x}" cy="${top-40}" rx="70" ry="70" fill="url(#halo_${it.hid})" class="glow"/>
-      <defs><radialGradient id="halo_${it.hid}"><stop offset="0" stop-color="${c}" stop-opacity=".55"/><stop offset="1" stop-color="${c}" stop-opacity="0"/></radialGradient></defs>
-      <path d="M${x-24} ${top} l6 -54 l12 -18 l8 18 l-2 54Z" fill="${c}" opacity=".95"/><path d="M${x-6} ${top} l10 -76 l14 -20 l10 22 l-6 74Z" fill="${c}"/><path d="M${x+4} ${top-76} l14 -20 l2 96 h-12Z" fill="#fff" opacity=".35"/>
-      <path d="M${x+20} ${top} l8 -40 l10 -10 l6 12 l-4 38Z" fill="${c}" opacity=".85"/>
-      <path d="M${x-50} ${top} q 0 -112 50 -112 q 50 0 50 112Z" fill="#fff" opacity=".08" stroke="#cfe3ff" stroke-opacity=".35" stroke-width="2"/>
-      <rect x="${x-46}" y="${top}" width="92" height="${450-top}" fill="#262a46"/><rect x="${x-52}" y="${top-4}" width="104" height="10" fill="#333a5e"/>`;
-  },
-  meteor: it => {
-    const {x}=it, top=380;
-    return `<ellipse cx="${x}" cy="452" rx="60" ry="8" fill="#000" opacity=".35"/>
-      <path d="M${x-44} ${top} q -10 -40 20 -54 q 30 -20 56 2 q 26 20 6 52Z" fill="#4a4048"/>
-      <circle cx="${x-14}" cy="${top-32}" r="8" fill="#3a3238"/><circle cx="${x+18}" cy="${top-20}" r="6" fill="#3a3238"/><circle cx="${x+6}" cy="${top-44}" r="4" fill="#3a3238"/>
-      <path d="M${x+20} ${top-48} q 14 8 14 24" stroke="#8a7d84" stroke-width="2" fill="none"/>
-      <rect x="${x-50}" y="${top}" width="100" height="${450-top}" fill="#262a46"/><rect x="${x-54}" y="${top-4}" width="108" height="10" fill="#333a5e"/>`;
-  },
-  sarco: it => {
-    const {x}=it;
-    return `<ellipse cx="${x}" cy="452" rx="70" ry="9" fill="#000" opacity=".25"/>
-      <path d="M${x-44} 450 L ${x-56} 300 Q ${x-60} 196 ${x} 180 Q ${x+60} 196 ${x+56} 300 L ${x+44} 450Z" fill="#c4932f" stroke="#7a5714" stroke-width="3"/>
-      <path d="M${x-40} 270 Q ${x} 250 ${x+40} 270 L ${x+38} 300 Q ${x} 284 ${x-38} 300Z" fill="#2d6a8a"/>
-      <path d="M${x-34} 236 Q ${x-36} 196 ${x} 192 Q ${x+36} 196 ${x+34} 236 L ${x+38} 268 H ${x-38}Z" fill="#1f4e6b"/>
-      <ellipse cx="${x}" cy="230" rx="22" ry="28" fill="#e2b552"/>
-      <path d="M${x-12} 226 h8 M${x+4} 226 h8" stroke="#1b1b1b" stroke-width="3" stroke-linecap="round"/><path d="M${x-14} 224 l-6 4 M${x+14} 224 l6 4" stroke="#1b1b1b" stroke-width="2"/>
-      <path d="M${x-2} 250 h4 v14 h-4Z" fill="#1f4e6b"/>
-      <path d="M${x-36} 320 h72 M${x-34} 350 h68 M${x-30} 380 h60 M${x-28} 410 h56" stroke="#7a5714" stroke-width="2"/>
-      <path d="M${x-14} 330 h28 v14 h-28Z M${x-10} 362 l10 -10 l10 10 l-10 10Z" fill="#2d6a8a"/>`;
-  },
-  glyphs: it => {
-    const {x,y}=it; const g=[
-      (a,b)=>`<ellipse cx="${a+12}" cy="${b+10}" rx="11" ry="6" fill="none" stroke="#5a3d16" stroke-width="2.5"/><circle cx="${a+12}" cy="${b+10}" r="3" fill="#5a3d16"/><path d="M${a+8} ${b+16} l-2 8 l6 -4" stroke="#5a3d16" stroke-width="2" fill="none"/>`,
-      (a,b)=>`<path d="M${a+4} ${b+22} q 2 -14 10 -14 q 2 -8 8 -6 l -4 4 q 6 6 0 16 l 4 0" stroke="#5a3d16" stroke-width="2.5" fill="none"/>`,
-      (a,b)=>`<ellipse cx="${a+12}" cy="${b+6}" rx="5" ry="6" fill="none" stroke="#5a3d16" stroke-width="2.5"/><path d="M${a+12} ${b+12} v14 M${a+4} ${b+15} h16" stroke="#5a3d16" stroke-width="2.5"/>`,
-      (a,b)=>`<path d="M${a+2} ${b+20} q 10 -18 20 0" stroke="#5a3d16" stroke-width="2.5" fill="none"/><circle cx="${a+12}" cy="${b+6}" r="4" fill="#5a3d16"/>`,
-      (a,b)=>`<path d="M${a+2} ${b+4} l 4 0 l 4 18 l 4 -18 l 4 0 l 4 18" stroke="#5a3d16" stroke-width="2.5" fill="none"/>`,
-      (a,b)=>`<path d="M${a+4} ${b+24} h16 v-6 h-16 Z M${a+8} ${b+18} v-14 h8 v14" stroke="#5a3d16" stroke-width="2.5" fill="none"/>`];
-    const R=rng(it.seed||5); let s='';
-    for(let r=0;r<it.rows;r++)for(let c=0;c<it.cols;c++) s+=g[Math.floor(R()*g.length)](x+12+c*30,y+14+r*34);
-    return `<rect x="${x}" y="${y}" width="${it.cols*30+18}" height="${it.rows*34+20}" fill="#e3c88d" stroke="#b08b4a" stroke-width="3"/>${s}`;
-  },
-  urn: it => {
-    const {x}=it, s=it.s||1, top=450-150*s;
-    return `<ellipse cx="${x}" cy="452" rx="${46*s}" ry="7" fill="#000" opacity=".25"/>
-      <path d="M${x-22*s} ${top} h${44*s} l-${4*s} ${14*s} q ${40*s} ${30*s} ${30*s} ${80*s} q -${8*s} ${40*s} -${30*s} ${56*s} h-${36*s} q -${22*s} -${16*s} -${30*s} -${56*s} q -${10*s} -${50*s} ${30*s} -${80*s}Z" fill="${it.color||'#a8552f'}"/>
-      <path d="M${x-36*s} ${top+64*s} h${72*s}" stroke="#2a1a10" stroke-width="${6*s}"/><path d="M${x-30*s} ${top+90*s} h${60*s}" stroke="#e8c27a" stroke-width="${3*s}" stroke-dasharray="${6*s} ${5*s}"/>
-      <rect x="${x-24*s}" y="${top-6*s}" width="${48*s}" height="${8*s}" rx="2" fill="#7a3a1e"/>`;
-  },
-  crown: it => {
-    const {x}=it, top=330;
-    return `<ellipse cx="${x}" cy="${top-30}" rx="120" ry="110" fill="url(#goldHalo)" class="glow"/>
-      <ellipse cx="${x}" cy="452" rx="70" ry="9" fill="#000" opacity=".35"/>
-      <rect x="${x-46}" y="${top+14}" width="92" height="${436-top}" fill="#3b2457"/><rect x="${x-56}" y="${top+6}" width="112" height="12" fill="#4b2f6e"/>
-      <rect x="${x-50}" y="${top-4}" width="100" height="14" rx="4" fill="#7b2a3a"/>
-      <path d="M${x-46} ${top-4} L ${x-52} ${top-60} L ${x-24} ${top-30} L ${x} ${top-74} L ${x+24} ${top-30} L ${x+52} ${top-60} L ${x+46} ${top-4}Z" fill="#f2c14e" stroke="#a87b1a" stroke-width="3" stroke-linejoin="round"/>
-      <circle cx="${x}" cy="${top-78}" r="6" fill="#fff3c4"/><circle cx="${x-52}" cy="${top-64}" r="5" fill="#fff3c4"/><circle cx="${x+52}" cy="${top-64}" r="5" fill="#fff3c4"/>
-      <circle cx="${x}" cy="${top-24}" r="8" fill="#d63a5a"/><circle cx="${x-28}" cy="${top-18}" r="5" fill="#3c91e6"/><circle cx="${x+28}" cy="${top-18}" r="5" fill="#3cb371"/>`;
-  },
-  chest: it => {
-    const {x}=it; let coins='';const R=rng(it.x);
-    for(let i=0;i<14;i++) coins+=`<ellipse cx="${(x-50+R()*100).toFixed(0)}" cy="${(368+R()*14).toFixed(0)}" rx="9" ry="4" fill="#f2c14e" stroke="#a87b1a"/>`;
-    return `<ellipse cx="${x}" cy="452" rx="80" ry="9" fill="#000" opacity=".3"/>
-      <path d="M${x-66} 330 q 66 -50 132 0 l -4 38 h-124Z" fill="#6b3f22" transform="rotate(-14 ${x-66} 368)"/>
-      ${coins}
-      <rect x="${x-66}" y="372" width="132" height="76" rx="4" fill="#7d4a28"/><rect x="${x-66}" y="372" width="132" height="76" fill="url(#woodGrain)" opacity=".3"/>
-      <rect x="${x-66}" y="372" width="132" height="10" fill="#c99b3a"/><rect x="${x-46}" y="372" width="10" height="76" fill="#c99b3a"/><rect x="${x+36}" y="372" width="10" height="76" fill="#c99b3a"/>
-      <rect x="${x-9}" y="390" width="18" height="22" rx="3" fill="#e2b552"/>`;
-  },
-  dangerBtn: it => `<rect x="${it.x-58}" y="226" width="116" height="104" rx="6" fill="#111"/>
-    <rect x="${it.x-54}" y="230" width="108" height="96" rx="4" fill="url(#hazard)"/>
-    <rect x="${it.x-46}" y="238" width="92" height="80" rx="3" fill="#fff4cc"/>
-    <text x="${it.x}" y="262" text-anchor="middle" font-family="Impact,'Arial Black',system-ui,sans-serif" font-weight="900" font-size="20" fill="#c1121f">KLICKA</text>
-    <text x="${it.x}" y="286" text-anchor="middle" font-family="Impact,'Arial Black',system-ui,sans-serif" font-weight="900" font-size="24" fill="#c1121f" class="blink">INTE!</text>
-    <text x="${it.x}" y="306" text-anchor="middle" font-family="system-ui,sans-serif" font-weight="700" font-size="10" fill="#2b2620">PÅ KNAPPEN</text>
-    <text x="${it.x}" y="356" text-anchor="middle" font-size="22" fill="#c1121f" class="blink">↓</text>
-    <ellipse cx="${it.x}" cy="472" rx="40" ry="7" fill="#000" opacity=".25"/>
-    <rect x="${it.x-7}" y="400" width="14" height="70" fill="#3a3a3a"/><rect x="${it.x-22}" y="464" width="44" height="8" rx="2" fill="#2a2a2a"/>
-    <rect x="${it.x-32}" y="384" width="64" height="24" rx="4" fill="#2b2b2b"/><rect x="${it.x-32}" y="384" width="64" height="5" rx="2" fill="#444"/>
-    <g id="dangerCap"><ellipse cx="${it.x}" cy="384" rx="22" ry="7" fill="#7d0f17"/><path d="M${it.x-22} 384 v-8 a22 9 0 0 1 44 0 v8Z" fill="#d62828"/><ellipse cx="${it.x}" cy="376" rx="22" ry="8" fill="#ef4b4b"/><ellipse cx="${it.x-7}" cy="374" rx="7" ry="2.5" fill="#fff" opacity=".5"/></g>`,
-  rope: it => `<g><rect x="${it.x1-4}" y="420" width="8" height="58" fill="#c99b3a"/><circle cx="${it.x1}" cy="418" r="7" fill="#e2b552"/><rect x="${it.x2-4}" y="420" width="8" height="58" fill="#c99b3a"/><circle cx="${it.x2}" cy="418" r="7" fill="#e2b552"/>
-    <path d="M${it.x1} 428 Q ${(it.x1+it.x2)/2} 462 ${it.x2} 428" stroke="#9b1d2b" stroke-width="7" fill="none" stroke-linecap="round"/><rect x="${it.x1-14}" y="476" width="28" height="6" rx="3" fill="#a87b1a"/><rect x="${it.x2-14}" y="476" width="28" height="6" rx="3" fill="#a87b1a"/></g>`,
-};
-
-// ---------- rooms ----------
-const ROOMS = {
-  entre: {name:'Entréhallen', sub:'Bottenvåningen', wall:'#e8dcc4', trim:'#9c8b6c', wains:'#d9caae', floor:'#cfc4b2', fstyle:'tile', spots:[230,690],
-    exits:[{dir:'left',to:'natur'},{dir:'right',to:'konst'},{dir:'back',to:'egypt'}],
-    items:[
-      {t:'banner',x:500,y:62,text:'MUSEUM AURORA'},
-      {t:'mapboard',x:170,y:190,cx:232,info:['Planritning','Informationstavla','Entrén ligger mitt på bottenvåningen. Till vänster: Naturhistoria. Till höger: Konstgalleriet. Rakt fram: Egyptiska salen. Längst in sägs det finnas ett valv som ingen nattvakt sett öppet.']},
-      {t:'plant',x:340,info:['Monstera deliciosa','Krukväxt, ej till salu','Museets mest fotograferade föremål, enligt besöksstatistiken. Vattnas varje tisdag av vaktmästare Berit.']},
-      {t:'desk',x:620,cx:710,info:['Biljettdisken','Ek och mässing, 1912','Här köper besökarna biljett på dagtid. Ringklockan har ringts uppskattningsvis 1,4 miljoner gånger. På disken ligger en lapp: ”Sex stjärnor. Sex salar. Kronan väntar.”']},
-    ], star:{x:780,y:306}},
-  konst: {name:'Konstgalleriet', sub:'Sal 2 · Måleri', wall:'#7a2e38', trim:'#4d1b22', wains:'#6a2630', floor:'#8a5a36', fstyle:'wood', spots:[245,500,755],
-    exits:[{dir:'left',to:'entre'},{dir:'right',to:'modern'}],
-    items:[
-      {t:'painting',x:170,y:130,w:150,h:190,art:'portrait',seed:11,info:['Damen med bärnstensbrosch','Okänd mästare, ca 1790. Olja på duk','Ingen vet vem hon är, men alla som stannat framför tavlan säger att hon ser ut som någon de känner.']},
-      {t:'painting',x:410,y:120,w:180,h:210,art:'landscape',seed:12,info:['Kvällsljus över Vättern','Ingrid Solmark, 1884. Olja på duk','Solmark målade samma vy 41 gånger. Detta är den enda versionen där hon tog med det lilla trädet.']},
-      {t:'painting',x:680,y:130,w:150,h:190,art:'sea',seed:13,info:['Storm vid Skagen','Henrik Alvbo, 1902. Olja på duk','Alvbo påstod att han målade tavlan ombord på en fiskebåt. Konservatorerna har hittat sand i färgen, så han talade kanske sanning.']},
-      {t:'bench',x:400,w:200,info:['Bänk','Funktionell möbel','Placerad exakt 3,2 meter från tavlorna. Ett perfekt avstånd för att se, och för att vila fötterna.']},
-    ], star:{x:572,y:510}},
-  modern: {name:'Moderna salen', sub:'Sal 3 · Samtidskonst', wall:'#f4f2ee', trim:'#d4d0c8', floor:'#9a9a96', fstyle:'concrete', spots:[230,390,760],
-    exits:[{dir:'left',to:'konst'}],
-    items:[
-      {t:'pedestal',x:220,sculpt:'cube',info:['Tyngdpunkt','Alva Brink, 2019. Lackerad aluminium','En kub som balanserar på ett hörn. Den är fastskruvad, men det vet ingen besökare.']},
-      {t:'painting',x:330,y:140,w:120,h:160,art:'blank',frame:false,seed:21,info:['Utan titel #7','Johan Vit, 1999. Vit duk','Konstnären hävdar att tavlan föreställer tystnad. Kritikerna var oense, men ingen kunde säga emot.']},
-      {t:'mobile',x:560,cx:560,info:['Balans i rörelse','Kinetisk installation, 1968','Mobilen rör sig av luftströmmarna i salen. Vakterna svär på att den rör sig mest när ingen tittar.']},
-      {t:'tv',x:770,info:['Kanal 0','Videoinstallation, 1987','En loop på 14 timmar med brus. Vissa påstår att det finns ett ansikte i minut 512.']},
-      {t:'painting',x:175,y:70,w:90,h:60,art:'abstract',seed:24,info:['Komposition i rött','Liten studie, 1961','Konstnären skissade den på en servett och lät sedan måla den i större format. Detta är servetten, inramad.']},
-    ], star:{x:710,y:300}},
-  natur: {name:'Naturhistoria', sub:'Sal 4 · Paleontologi', wall:'#405b4b', trim:'#25372d', wains:'#36503f', floor:'#7a5b3e', fstyle:'wood', spots:[300,750], backX:575,
-    exits:[{dir:'right',to:'entre'},{dir:'back',to:'mineral'}],
-    items:[
-      {t:'dino',x:140,cx:330,info:['Aurorasaurus borealis','Sen krita, ca 70 miljoner år','Hittades 1931 i en grusgrop utanför Kiruna (det är inte sant, men vi tycker om historien). Skelettet består av 64 % äkta ben och 36 % gips.']},
-      {t:'dangerBtn',x:72,danger:true},
-      {t:'case',x:660,cx:760,info:['Fjärilssamlingen','Insamlad 1890–1920','Sex arter från sex kontinenter. Den blå fjärilen är så sällsynt att arten bara har setts tre gånger sedan dess.']},
-    ], star:{x:288,y:326}},
-  mineral: {name:'Mineralrummet', sub:'Sal 5 · Geologi', wall:'#1f2240', trim:'#121428', floor:'#191a2c', fstyle:'stone', spots:[], dark:true,
-    exits:[{dir:'front',to:'natur'}],
-    items:[
-      {t:'crystal',x:200,color:'#7ad7ff',hid:'a',info:['Isblå kvarts','Funnen i Jämtland','En bergkristall så klar att man kan läsa genom den. Den är 300 miljoner år gammal och ändå helt utan repor.']},
-      {t:'meteor',x:380,info:['Meteoriten från Ystad','Föll 1878','Väger 41 kilo och består mest av järn och nickel. Bonden som hittade den använde den som dörrstopp i tolv år.']},
-      {t:'crystal',x:600,color:'#c38bff',hid:'b',info:['Ametist','Funnen i Brasilien','Forntida greker trodde att ametist skyddade mot berusning. Museet har valt att inte testa påståendet.']},
-      {t:'crystal',x:800,color:'#7dff9e',hid:'c',info:['Fluorit','Lyser under UV-ljus','Kristallen lyser grönt i mörker. Därför har vi släckt i salen, inte för att spara el.']},
-    ], star:{x:930,y:500,dim:true}},
-  egypt: {name:'Egyptiska salen', sub:'Sal 6 · Antiken', wall:'#d6b674', trim:'#9a7a3a', wains:'#c9a660', floor:'#b59a6e', fstyle:'stone', spots:[200,780],
-    exits:[{dir:'front',to:'entre'},{dir:'back',to:'skatt',lock:true}],
-    items:[
-      {t:'sarco',x:200,info:['Sarkofag åt Neferet','Nya riket, ca 1300 f.Kr.','Neferet var skrivare vid templet. Inskriptionen ber besökaren att säga hennes namn högt, så att hon aldrig glöms bort. Säg det gärna nu.']},
-      {t:'glyphs',x:292,y:150,cols:4,rows:5,seed:9,cx:360,info:['Hieroglyfer','Kopia av tempelvägg','Översatt lyder texten ungefär: ”Den som söker sex stjärnor ska finna en krona.” Konstigt sammanträffande.']},
-      {t:'glyphs',x:640,y:150,cols:5,rows:3,seed:17,cx:720,info:['Offerlista','Kalksten','En lista över gåvor till gudarna: bröd, öl, gäss och tre korgar fikon. Gudarna verkar ha varit hungriga.']},
-      {t:'urn',x:680,s:1,color:'#a8552f',info:['Kanopisk kruka','Lera, ca 1100 f.Kr.','Användes vid balsamering. Den här är tom, sägs det.']},
-      {t:'urn',x:800,s:.8,color:'#3f6f7d',info:['Kruka med lock','Fajans','Den blåa glasyren har behållit färgen i 3000 år, bättre än de flesta köksmöbler.']},
-    ], star:{x:842,y:184}},
-  skatt: {name:'Skattkammaren', sub:'Valvet', wall:'#2c1d3e', trim:'#1a1026', wains:'#24182f', floor:'#3a2448', fstyle:'carpet', spots:[500], dark:true,
-    exits:[{dir:'front',to:'egypt'}],
-    items:[
-      {t:'chest',x:240,info:['Kistan','Sjörövarbyte, 1600-tal','Fylld med mynt från ett dussin länder. Den beslagtogs från en kapten som inte kunde förklara var han fått dem ifrån.']},
-      {t:'crown',x:500,win:true,info:['Aurorakronan','Guld, rubin och nordsken','Museets största skatt. Du hittade den!']},
-      {t:'chest',x:760,info:['Kistan','Okänd ägare','Lappen på locket säger: ”Rör ej. Gäller även nattvakter.”']},
-    ], star:null},
-};
-const ORDER=['entre','konst','modern','natur','mineral','egypt'];
-const STAR_TOTAL = ORDER.filter(k=>ROOMS[k].star).length;
-const MAPPOS = {skatt:[1,0],mineral:[0,1],egypt:[1,1],natur:[0,2],entre:[1,2],konst:[2,2],modern:[3,2]};
-
-// ---------- state ----------
-const S = {room:'entre', vx:500, face:1, stars:new Set(), visited:new Set(['entre']), busy:false, started:false, t0:0, steps:0, won:false, sound:true};
-const svg = $('scene');
-
-// ---------- audio ----------
-let ac=null;
-function tone(freqs, dur=.12, type='sine', vol=.08){
-  if(!S.sound) return;
-  try{ ac = ac || new (window.AudioContext||window.webkitAudioContext)(); const t=ac.currentTime;
-    freqs.forEach((f,i)=>{const o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(0,t+i*dur);g.gain.linearRampToValueAtTime(vol,t+i*dur+.01);g.gain.exponentialRampToValueAtTime(.0001,t+i*dur+dur*1.8);o.connect(g).connect(ac.destination);o.start(t+i*dur);o.stop(t+i*dur+dur*2)});
-  }catch(e){}
-}
-const sfx = {
-  star:()=>tone([880,1175,1568],.09,'triangle',.09),
-  door:()=>tone([220,165],.1,'sine',.06),
-  locked:()=>tone([140,120],.08,'square',.04),
-  click:()=>tone([660],.05,'triangle',.04),
-  win:()=>tone([523,659,784,1047,1319],.12,'triangle',.1),
-};
-
-// ---------- rendering ----------
-function defs(){
-  return `<defs>
-    <linearGradient id="wallShade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".22"/><stop offset=".5" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".12"/></linearGradient>
-    <linearGradient id="floorShade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".35"/><stop offset="1" stop-color="#000" stop-opacity="0"/></linearGradient>
-    <linearGradient id="cone" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff6dc" stop-opacity=".32"/><stop offset="1" stop-color="#fff6dc" stop-opacity="0"/></linearGradient>
-    <linearGradient id="pedShade" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".18"/></linearGradient>
-    <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset=".4" stop-color="#fff" stop-opacity=".05"/><stop offset="1" stop-color="#cfe6ff" stop-opacity=".2"/></linearGradient>
-    <radialGradient id="crt"><stop offset=".6" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".5"/></radialGradient>
-    <radialGradient id="vig"><stop offset=".5" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".8"/></radialGradient>
-    <radialGradient id="goldHalo"><stop offset="0" stop-color="#ffd76a" stop-opacity=".55"/><stop offset="1" stop-color="#ffd76a" stop-opacity="0"/></radialGradient>
-    <radialGradient id="beam" cx="0" cy=".5" r="1"><stop offset="0" stop-color="#fff3c4" stop-opacity=".5"/><stop offset="1" stop-color="#fff3c4" stop-opacity="0"/></radialGradient>
-    <radialGradient id="dark" cx=".5" cy=".55" r=".75"><stop offset=".35" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".65"/></radialGradient>
-    <pattern id="hazard" width="20" height="20" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="20" height="20" fill="#f2c14e"/><rect width="10" height="20" fill="#1b1b1b"/></pattern>
-    <pattern id="woodGrain" width="40" height="12" patternUnits="userSpaceOnUse"><path d="M0 6 q 10 -4 20 0 t 20 0" stroke="#2a1a0e" stroke-width="1" fill="none"/></pattern>
-  </defs>`;
-}
-function walls(r){
-  let s=`<rect width="1000" height="420" fill="${r.wall}"/>`;
-  if(r.wains) s+=`<rect y="300" width="1000" height="106" fill="${r.wains}"/><rect y="296" width="1000" height="6" fill="${r.trim}" opacity=".8"/>`;
-  s+=`<rect width="1000" height="420" fill="url(#wallShade)"/><rect width="1000" height="22" fill="${r.trim}"/><rect y="22" width="1000" height="4" fill="#000" opacity=".15"/><rect y="404" width="1000" height="16" fill="${r.trim}"/>`;
-  return s;
-}
-function floor(r){
-  let s=`<rect y="420" width="1000" height="180" fill="${r.floor}"/>`;
-  const ln=(a)=>`stroke="#000" stroke-opacity="${a}"`;
-  if(r.fstyle==='wood'){
-    const ys=[420,432,446,463,484,509,539,574,610];const R=rng(4);
-    for(let i=1;i<ys.length;i++){s+=`<line x1="0" y1="${ys[i]}" x2="1000" y2="${ys[i]}" ${ln(.25)}/>`;
-      let x=R()*120;while(x<1000){s+=`<line x1="${x.toFixed(0)}" y1="${ys[i-1]}" x2="${x.toFixed(0)}" y2="${ys[i]}" ${ln(.2)}/>`;x+=80+R()*160;}}
-  } else if(r.fstyle==='tile'||r.fstyle==='stone'){
-    const step=r.fstyle==='tile'?70:110;
-    for(let i=-12;i<=12;i++) s+=`<line x1="${500+i*step*.55}" y1="420" x2="${500+i*step*1.45}" y2="600" ${ln(.22)}/>`;
-    [436,456,482,514,554].forEach(y=>s+=`<line x1="0" y1="${y}" x2="1000" y2="${y}" ${ln(.22)}/>`);
-    if(r.fstyle==='tile'){ // checker accents
-      s+=`<path d="M362 456 L 400 456 L 391 482 L 347 482Z M 440 482 L 484 482 L 482 514 L 426 514Z M 516 456 L 553 456 L 562 482 L 518 482Z M 600 482 L 653 482 L 670 514 L 610 514Z" fill="#000" opacity=".08"/>`;
-    }
-  } else if(r.fstyle==='concrete'){
-    s+=`<line x1="0" y1="500" x2="1000" y2="500" ${ln(.12)}/><line x1="300" y1="420" x2="200" y2="600" ${ln(.12)}/><line x1="700" y1="420" x2="800" y2="600" ${ln(.12)}/>`;
-  } else if(r.fstyle==='carpet'){
-    s+=`<path d="M420 420 H 580 L 660 600 H 340Z" fill="#8c1f30"/><path d="M432 420 H 568 L 640 600 H 360Z" fill="none" stroke="#e2b552" stroke-width="3"/>`;
-  }
-  s+=`<rect y="420" width="1000" height="180" fill="url(#floorShade)"/>`;
-  return s;
-}
-function spots(r){
-  return r.spots.map(x=>`<polygon points="${x-14},26 ${x+14},26 ${x+110},420 ${x-110},420" fill="url(#cone)"/><rect x="${x-14}" y="22" width="28" height="10" rx="3" fill="#2b2b2b"/><ellipse cx="${x}" cy="33" rx="10" ry="3" fill="#fff6dc"/>`).join('');
-}
-function doorX(r,ex){ return ex.dir==='left'?80:ex.dir==='right'?920:(ex.dir==='back'?(r.backX||500):500); }
-function exitSvg(r,ex,i){
-  const to=ROOMS[ex.to], locked = ex.lock && S.stars.size<STAR_TOTAL, label = esc(to.name);
-  const act=`class="hot" data-act="exit:${i}"`;
-  if(ex.dir==='left'||ex.dir==='right'){
-    const x = ex.dir==='left'?30:870, arrow = ex.dir==='left'?'←':'→';
-    return `<g ${act}><title>Gå till ${label}</title>
-      <rect x="${x-6}" y="192" width="112" height="228" rx="4" fill="${r.trim}"/>
-      <rect x="${x+6}" y="204" width="88" height="216" fill="${to.wall}"/><rect x="${x+6}" y="204" width="88" height="216" fill="#000" opacity=".35"/>
-      <rect x="${x+6}" y="380" width="88" height="40" fill="${to.floor}" opacity=".9"/>
-      <rect x="${x-2}" y="150" width="104" height="30" rx="4" fill="#1d1a24"/>
-      <text x="${x+50}" y="170" text-anchor="middle" font-size="13" font-family="system-ui,sans-serif" fill="#f2e8d4">${ex.dir==='left'?arrow+' ':''}${label}${ex.dir==='right'?' '+arrow:''}</text></g>`;
-  }
-  if(ex.dir==='back'){
-    const cx=doorX(r,ex), x=cx-60;
-    if(locked){
-      return `<g ${act}><title>Valvdörren (låst)</title>
-        <rect x="${x-8}" y="182" width="136" height="238" rx="6" fill="#5a5560"/>
-        <rect x="${x}" y="190" width="120" height="230" rx="4" fill="#7d7884"/><rect x="${x}" y="190" width="120" height="230" fill="url(#pedShade)"/>
-        <circle cx="${cx}" cy="300" r="34" fill="none" stroke="#b9b3c0" stroke-width="7"/>
-        <path d="M${cx-34} 300 h68 M${cx} 266 v68 M${cx-24} 276 l48 48 M${cx+24} 276 l-48 48" stroke="#b9b3c0" stroke-width="4"/>
-        <circle cx="${cx}" cy="300" r="8" fill="#e2b552"/>
-        <rect x="${x+20}" y="150" width="80" height="24" rx="4" fill="#1d1a24"/><text x="${cx}" y="167" text-anchor="middle" font-size="12" font-family="system-ui,sans-serif" fill="#f2c14e">🔒 ${S.stars.size}/${STAR_TOTAL}</text></g>`;
-    }
-    return `<g ${act}><title>Gå till ${label}</title>
-      <rect x="${x-10}" y="180" width="140" height="240" rx="6" fill="${r.trim}"/>
-      <path d="M${x} 420 V 250 a 60 60 0 0 1 120 0 V 420Z" fill="${to.wall}"/><path d="M${x} 420 V 250 a 60 60 0 0 1 120 0 V 420Z" fill="#000" opacity=".3"/>
-      <rect x="${x}" y="392" width="120" height="28" fill="${to.floor}"/>
-      ${ex.lock?`<rect x="${x+86}" y="200" width="40" height="220" fill="#7d7884" transform="skewY(-6)" opacity=".9"/>`:''}
-      <rect x="${cx-70}" y="146" width="140" height="26" rx="4" fill="#1d1a24"/><text x="${cx}" y="164" text-anchor="middle" font-size="13" font-family="system-ui,sans-serif" fill="#f2e8d4">↑ ${label}</text></g>`;
-  }
-  // front
-  return `<g ${act}><title>Tillbaka till ${label}</title>
-    <rect x="390" y="560" width="220" height="32" rx="16" fill="#1d1a24" opacity=".85" stroke="#f2c14e" stroke-opacity=".6"/>
-    <text x="500" y="581" text-anchor="middle" font-size="14" font-family="system-ui,sans-serif" fill="#f2e8d4">↓ ${label}</text></g>`;
-}
-function itemSvg(it,i){
-  const body = D[it.t](it);
-  if(it.danger) return `<g class="hot" data-act="danger"><title>KLICKA INTE!</title>${body}</g>`;
-  if(it.deco || !it.info) return `<g>${body}</g>`;
-  return `<g class="hot" data-act="item:${i}"><title>${esc(it.info[0])}</title>${body}</g>`;
-}
-function starSvg(r){
-  if(!r.star || S.stars.has(S.room)) return '';
-  const {x,y}=r.star, op=r.star.dim?.55:1;
-  return `<g class="hot" data-act="star"><title>?</title><circle cx="${x}" cy="${y}" r="22" fill="transparent"/>
-    <g class="twinkle" opacity="${op}"><polygon points="${starPts(x,y,12,5)}" fill="#f7cf4a" stroke="#a87b1a" stroke-width="1.5"/><circle cx="${x-3}" cy="${y-4}" r="2" fill="#fff"/></g></g>`;
-}
-function visitorSvg(){
-  return `<g id="vis" pointer-events="none" transform="translate(${S.vx.toFixed(1)} 560)">
-    <ellipse cx="0" cy="0" rx="26" ry="6" fill="#000" opacity=".3"/>
-    <g id="visFlip" transform="scale(${S.face} 1)">
-      <rect class="leg l" x="-11" y="-42" width="9" height="42" rx="3" fill="#1f2433"/>
-      <rect class="leg r" x="2" y="-42" width="9" height="42" rx="3" fill="#1f2433"/>
-      <g class="bob">
-        <polygon points="24,-74 200,-130 200,-10 24,-62" fill="url(#beam)" opacity="${ROOMS[S.room].dark?.9:.45}"/>
-        <rect x="-17" y="-92" width="34" height="56" rx="11" fill="#2f3f6b"/>
-        <rect x="-17" y="-60" width="34" height="5" fill="#1d2744"/><rect x="-6" y="-84" width="9" height="9" rx="2" fill="#e2b552"/>
-        <rect x="8" y="-82" width="8" height="26" rx="4" fill="#26355c" transform="rotate(-50 12 -82)"/>
-        <rect x="12" y="-74" width="16" height="7" rx="2" fill="#555"/>
-        <g id="visHead"><circle cx="0" cy="-104" r="14" fill="#f0c9a0"/><circle cx="6" cy="-106" r="1.8" fill="#222"/>
-        <path d="M-15 -107 h30 v-6 a15 9 0 0 0 -30 0z" fill="#1d2744"/><rect x="4" y="-110" width="18" height="4" rx="2" fill="#1d2744"/></g>
-        <g id="visNeck" opacity="0"><ellipse cx="0" cy="-92" rx="9" ry="4" fill="#c97f63"/></g>
-      </g>
-    </g></g>`;
-}
-function render(){
-  const r=ROOMS[S.room];
-  let out = defs()+walls(r)+spots(r);
-  r.exits.forEach((ex,i)=>{ if(ex.dir!=='front') out+=exitSvg(r,ex,i); });
-  out += floor(r);
-  r.items.forEach((it,i)=>out+=itemSvg(it,i));
-  if(r.dark) out+=`<rect width="1000" height="600" fill="url(#dark)" pointer-events="none"/>`;
-  out += starSvg(r);
-  out += visitorSvg();
-  r.exits.forEach((ex,i)=>{ if(ex.dir==='front') out+=exitSvg(r,ex,i); });
-  svg.innerHTML = out;
-  svg.setAttribute('aria-label', r.name);
-  $('roomTitle').textContent=r.name; $('roomSub').textContent='Museum Aurora · '+r.sub;
-  $('starCount').textContent=S.stars.size;
-}
-
-// ---------- movement ----------
-let raf=0;
-function walkTo(tx, cb){
-  cancelAnimationFrame(raf);
-  tx=Math.max(60,Math.min(940,tx));
-  const vis=$('vis'), flip=$('visFlip');
-  if(Math.abs(tx-S.vx)<4){ cb&&cb(); return; }
-  S.face = tx>S.vx?1:-1; flip.setAttribute('transform',`scale(${S.face} 1)`);
-  vis.classList.add('walk');
-  let last=performance.now();
-  const speed=520;
-  const tick=now=>{
-    const dt=Math.min(.05,(now-last)/1000); last=now;
-    const d=tx-S.vx, stepv=speed*dt;
-    if(Math.abs(d)<=stepv){ S.vx=tx; vis.setAttribute('transform',`translate(${S.vx} 560)`); vis.classList.remove('walk'); cb&&cb(); return; }
-    S.vx+=Math.sign(d)*stepv; vis.setAttribute('transform',`translate(${S.vx.toFixed(1)} 560)`);
-    raf=requestAnimationFrame(tick);
-  };
-  raf=requestAnimationFrame(tick);
-}
-function go(ex){
-  const from=S.room, r=ROOMS[from];
-  if(ex.lock && S.stars.size<STAR_TOTAL){
-    sfx.locked();
-    walkTo(doorX(r,ex), ()=>{ S.busy=false; showPlaque('Valvdörren är låst', 'Ståldörr med tidslås', `Ett mekaniskt lås med sex stjärnformade skåror. Du har hittat ${S.stars.size} av ${STAR_TOTAL} guldstjärnor.`); });
-    return;
-  }
-  hidePlaque();
-  walkTo(doorX(r,ex), ()=>{
-    sfx.door();
-    $('fade').classList.add('on');
-    setTimeout(()=>{
-      S.room=ex.to; S.visited.add(ex.to); S.steps++;
-      S.vx = ex.dir==='left'?880:ex.dir==='right'?120:500;
-      S.face = ex.dir==='left'?-1:1;
-      render();
-      $('fade').classList.remove('on');
-      setTimeout(()=>{
-        S.busy=false;
-        if(ex.to==='skatt' && !S.won) showPlaque('Skattkammaren','Valvet är öppet','Ett varmt guldsken fyller rummet. Mitt i salen står Aurorakronan. Klicka på den!');
-      },320);
-    },340);
-  });
-}
-
-// ---------- plaque ----------
-let plaqueTimer=0;
-function showPlaque(title, meta, text){
-  $('plaqueTitle').textContent=title; $('plaqueMeta').textContent=meta; $('plaqueText').textContent=text;
-  $('plaque').classList.add('show');
-}
-function hidePlaque(){ $('plaque').classList.remove('show'); }
-$('plaqueClose').addEventListener('click', hidePlaque);
-
-// ---------- input ----------
-svg.addEventListener('click', e=>{
-  if(!S.started || S.busy) return;
-  const g=e.target.closest('[data-act]');
-  if(!g){ // walk on floor
-    const pt=svgPoint(e); if(pt.y>420){ hidePlaque(); walkTo(pt.x); }
-    return;
-  }
-  const [kind,idx]=g.dataset.act.split(':'), r=ROOMS[S.room];
-  if(kind==='exit'){ S.busy=true; go(r.exits[+idx]); }
-  else if(kind==='danger'){ S.busy=true; hidePlaque(); doom(); }
-  else if(kind==='item'){
-    const it=r.items[+idx]; sfx.click(); hidePlaque();
-    const cx = it.cx ?? (it.w ? it.x+it.w/2 : it.x);
-    S.busy=true;
-    walkTo(cx + (cx>S.vx?-70:70), ()=>{
-      S.busy=false;
-      S.face = cx>S.vx?1:-1; $('visFlip').setAttribute('transform',`scale(${S.face} 1)`);
-      showPlaque(it.info[0], it.info[1], it.info[2]);
-      if(it.win) setTimeout(win, 700);
-    });
-  }
-  else if(kind==='star'){
-    S.busy=true; hidePlaque();
-    walkTo(r.star.x + (r.star.x>S.vx?-50:50), ()=>{
-      S.stars.add(S.room); sfx.star(); render(); S.busy=false;
-      burst(r.star.x, r.star.y);
-      if(S.stars.size===STAR_TOTAL) showPlaque('Alla stjärnor hittade!','Ett avlägset klick…','Du hör ett tungt lås öppnas någonstans i Egyptiska salen. Valvet väntar.');
-      else showPlaque('Guldstjärna!', `${S.stars.size} av ${STAR_TOTAL}`, 'Du stoppar stjärnan i fickan. Fortsätt leta i de andra salarna.');
-    });
-  }
-});
-function svgPoint(e){ const p=svg.createSVGPoint(); p.x=e.clientX; p.y=e.clientY; return p.matrixTransform(svg.getScreenCTM().inverse()); }
-function burst(x,y){
-  let s='';for(let i=0;i<12;i++){const a=i/12*Math.PI*2;s+=`<circle cx="${x}" cy="${y}" r="3" fill="#f7cf4a"><animate attributeName="cx" to="${x+Math.cos(a)*60}" dur=".6s" fill="freeze"/><animate attributeName="cy" to="${y+Math.sin(a)*60}" dur=".6s" fill="freeze"/><animate attributeName="opacity" to="0" dur=".6s" fill="freeze"/></circle>`}
-  const g=document.createElementNS('http://www.w3.org/2000/svg','g'); g.innerHTML=s; g.setAttribute('pointer-events','none'); svg.appendChild(g); setTimeout(()=>g.remove(),700);
-}
-
-// ---------- the button you should not press ----------
-new Image().src='assets/dino-head.jpg'; // preload
-const wait = ms => new Promise(res=>setTimeout(res,ms));
-function tween(ms, fn){ return new Promise(res=>{ const t0=performance.now(); const f=now=>{ const k=Math.min(1,(now-t0)/ms); fn(k); k<1?requestAnimationFrame(f):res(); }; requestAnimationFrame(f); }); }
-const ease = k => 1-Math.pow(1-k,3);
-const back = k => { const c=1.9; return 1+(c+1)*Math.pow(k-1,3)+c*Math.pow(k-1,2); };
-async function doom(){
-  const btnX = ROOMS.natur.items.find(i=>i.danger).x;
-  await new Promise(res=>walkTo(btnX+70, res));
-  S.face=-1; $('visFlip').setAttribute('transform','scale(-1 1)');
-  // press
-  $('dangerCap').setAttribute('transform','translate(0 6)'); tone([90],.08,'square',.06);
-  await wait(250);
-  $('redFlash').classList.add('on'); tone([660,440,660,440,660,440],.22,'sawtooth',.05);
-  showPlaque('Oj.','Du klickade på knappen','Det stod faktiskt KLICKA INTE.');
-  await wait(900);
-  // the skull becomes the photo
-  const o = ROOMS.natur.items.find(i=>i.t==='dino').x, hx0=o+52, hy0=206;
-  const skull=$('dinoSkull'), head=$('dinoHead'), neck=$('dinoNeck');
-  await tween(250, k=>skull.setAttribute('opacity',1-k));
-  tone([70,55],.25,'sawtooth',.09);
-  await tween(450, k=>head.setAttribute('transform',`translate(${hx0} ${hy0}) scale(${back(k).toFixed(3)})`));
-  hidePlaque();
-  await wait(700);
-  // lunge
-  const gx=S.vx-2, gy=560-108;
-  svg.appendChild(neck); svg.appendChild(head); // in front of the guard
-  $('dinoTeeth').setAttribute('opacity',1);
-  const setHead=(x,y,sc)=>{ head.setAttribute('transform',`translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${sc})`); neck.setAttribute('d',`M${o+86} 278 Q ${((o+86+x)/2).toFixed(1)} ${(Math.min(278,y)-40).toFixed(1)} ${x.toFixed(1)} ${(y+30).toFixed(1)}`); };
-  await tween(320, k=>{ const e=ease(k); setHead(hx0+(gx-hx0)*e, hy0+(gy-hy0)*e, 1+0.15*e); });
-  // chomp
-  $('visHead').setAttribute('opacity',0); $('visNeck').setAttribute('opacity',1);
-  tone([180,90,60],.07,'square',.12);
-  const frame=document.querySelector('.frame'); frame.classList.remove('shake'); void frame.offsetWidth; frame.classList.add('shake');
-  burst(gx, gy);
-  await wait(250);
-  await tween(500, k=>{ const e=ease(k); setHead(gx+(hx0-gx)*e, gy+(hy0-gy)*e, 1.15-0.15*e); });
-  neck.setAttribute('d',''); $('dinoTeeth').setAttribute('opacity',0);
-  tone([392,330,262,196],.22,'triangle',.08);
-  await wait(700);
-  $('redFlash').classList.remove('on');
-  S.dead=true;
-  $('gameover').hidden=false;
-}
-
-// ---------- map ----------
-function drawMap(){
-  const grid=$('mapGrid'); let h='';
-  const cw=25, ch=100/3;
-  const links=[['skatt','egypt'],['mineral','natur'],['egypt','entre'],['natur','entre'],['entre','konst'],['konst','modern']];
-  links.forEach(([a,b])=>{ if(!S.visited.has(a)&&!S.visited.has(b)) return; const [ac,ar]=MAPPOS[a],[bc,br]=MAPPOS[b];
-    if(ar===br) h+=`<div class="mapline" style="left:${Math.min(ac,bc)*cw+cw/2}%;top:${ar*ch+ch/2-.5}%;width:${cw}%;height:3px"></div>`;
-    else h+=`<div class="mapline" style="left:calc(${ac*cw+cw/2}% - 1.5px);top:${Math.min(ar,br)*ch+ch/2}%;width:3px;height:${ch}%"></div>`; });
-  Object.entries(MAPPOS).forEach(([k,[c,rw]])=>{
-    const seen=S.visited.has(k), cls=k===S.room?'here':seen?'seen':'';
-    const st = ROOMS[k].star ? (S.stars.has(k)?'★':(seen?'☆':'')) : '';
-    h+=`<div class="mapcell ${cls}" style="left:${c*cw+1}%;top:${rw*ch+1.5}%">${seen?esc(ROOMS[k].name):'?'}${st?`<span class="s">${st}</span>`:''}</div>`;
-  });
-  grid.innerHTML=h;
-}
-$('mapBtn').addEventListener('click',()=>{ drawMap(); $('mapOverlay').hidden=false; });
-$('mapClose').addEventListener('click',()=>{ $('mapOverlay').hidden=true; });
-$('mapOverlay').addEventListener('click',e=>{ if(e.target.id==='mapOverlay') $('mapOverlay').hidden=true; });
-$('soundBtn').addEventListener('click',()=>{ S.sound=!S.sound; $('soundBtn').textContent=S.sound?'Ljud på':'Ljud av'; $('soundBtn').setAttribute('aria-pressed',S.sound); });
-document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ hidePlaque(); $('mapOverlay').hidden=true; } if(e.key==='m'||e.key==='M'){ if(S.started){drawMap(); $('mapOverlay').hidden=!$('mapOverlay').hidden;} } });
-
-// ---------- timer / win ----------
-const fmt = ms => { const s=Math.floor(ms/1000); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); };
-setInterval(()=>{ if(S.started && !S.won && !S.dead) $('timer').textContent=fmt(performance.now()-S.t0); },500);
-function win(){
-  if(S.won) return; S.won=true; sfx.win();
-  $('winText').textContent=`Du hittade alla ${STAR_TOTAL} guldstjärnor, öppnade valvet och räddade Aurorakronan på ${fmt(performance.now()-S.t0)}, med ${S.steps} förflyttningar mellan salarna.`;
-  $('win').hidden=false;
-}
-function start(){
-  Object.assign(S,{room:'entre',vx:500,face:1,stars:new Set(),visited:new Set(['entre']),busy:false,started:true,t0:performance.now(),steps:0,won:false});
-  S.dead=false; $('timer').textContent='0:00'; hidePlaque(); render();
-  $('redFlash').classList.remove('on');
-  $('intro').hidden=true; $('win').hidden=true; $('gameover').hidden=true;
-}
-$('startBtn').addEventListener('click',start);
-$('againBtn').addEventListener('click',start);
-$('retryBtn').addEventListener('click',start);
-$('starTotal').textContent=STAR_TOTAL;
-render();
-})();
-</script>
+<script type="module" src="game.js"></script>
 </body>
 </html>
