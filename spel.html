@@ -8,35 +8,62 @@
   html, body { margin: 0; height: 100%; overflow: hidden; }
   body {
     display: grid; place-items: center;
-    background: #f4f1ea;
     font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    /* Rainbow background that changes colour about 2.5 times a second */
+    animation: rainbow 2.4s steps(1) infinite;
+  }
+  /* Blinking sparkles on the start screen */
+  .sparkles { position: fixed; inset: 0; pointer-events: none; }
+  .sparkles i {
+    position: absolute; font-style: normal; font-size: 28px;
+    animation: twinkle var(--d) ease-in-out var(--delay) infinite;
+  }
+  @keyframes twinkle {
+    0%, 100% { opacity: 0; transform: scale(.3) rotate(0deg); }
+    50%      { opacity: 1; transform: scale(1.2) rotate(90deg); }
+  }
+  @keyframes rainbow {
+    0%      { background: #ff5fa2; }
+    16.66%  { background: #ffb347; }
+    33.33%  { background: #fff35c; }
+    50%     { background: #6dff9b; }
+    66.66%  { background: #5ec8ff; }
+    83.33%  { background: #b57bff; }
   }
   #knapp {
+    position: relative; z-index: 1;
     font: inherit; font-size: clamp(22px, 5vw, 36px); font-weight: 700;
-    padding: 20px 48px; border: 0; border-radius: 999px;
+    padding: 20px 48px; border: 4px solid #fff; border-radius: 999px;
     background: #FFE135; color: #3b2f00; cursor: pointer;
-    box-shadow: 0 6px 0 #c9a800;
+    box-shadow: 0 6px 0 #c9a800, 0 0 30px 10px #fff;
+    animation: wiggle .8s ease-in-out infinite, glow .6s ease-in-out infinite;
   }
-  #knapp:active { transform: translateY(4px); box-shadow: 0 2px 0 #c9a800; }
+  #knapp:active { transform: translateY(4px); }
+  @keyframes wiggle {
+    0%, 100% { rotate: -4deg; scale: 1; }
+    50%      { rotate: 4deg; scale: 1.08; }
+  }
+  @keyframes glow {
+    0%, 100% { box-shadow: 0 6px 0 #c9a800, 0 0 10px 2px #fff; }
+    50%      { box-shadow: 0 6px 0 #c9a800, 0 0 50px 20px #fff; }
+  }
 
   #scare {
-    position: fixed; inset: -30px; display: none;
-    background: #000; place-items: center; overflow: hidden;
+    position: fixed; inset: -30px; display: none; z-index: 2;
+    place-items: center; overflow: hidden;
+    animation: rainbow 2.4s steps(1) infinite;
   }
-  #scare.on { display: grid; animation: shake .08s linear infinite; }
-  #scare img {
-    width: 100vmin; height: 100vmin; object-fit: cover;
-    image-rendering: pixelated;
-    filter: contrast(1.6) brightness(1.1);
+  #scare.on { display: grid; animation: rainbow 2.4s steps(1) infinite, shake .08s linear infinite; }
+  #scare svg {
+    height: 100vmin; width: auto; overflow: visible;
     animation: zoom .35s cubic-bezier(.2, 1.6, .4, 1) forwards;
   }
-  #scare::after {
-    content: ""; position: absolute; inset: 0;
-    background: #ff0000; mix-blend-mode: multiply;
-    animation: red .6s ease-out forwards;
-  }
-  @keyframes zoom { from { transform: scale(.05); } to { transform: scale(1.05); } }
-  @keyframes red { from { opacity: .7; } to { opacity: .12; } }
+  #scare .mane { animation: hue 1.2s steps(3) infinite; }
+  #scare .face { filter: contrast(1.4) brightness(1.1); }
+  #scare .star { animation: twinkle .5s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+  #scare .star:nth-of-type(2n) { animation-delay: -.25s; }
+  @keyframes zoom { from { transform: scale(.05); } to { transform: scale(1); } }
+  @keyframes hue { from { filter: hue-rotate(0deg); } to { filter: hue-rotate(360deg); } }
   @keyframes shake {
     0%   { transform: translate(0, 0); }
     25%  { transform: translate(-12px, 8px); }
@@ -44,15 +71,77 @@
     75%  { transform: translate(-8px, -6px); }
     100% { transform: translate(0, 0); }
   }
+  @media (prefers-reduced-motion: reduce) {
+    body, #scare, #scare.on, #knapp, .sparkles i, #scare .star, #scare .mane { animation: none; }
+    body { background: #ff9fd0; }
+    #scare { background: #b57bff; }
+    #scare svg { animation: none; }
+  }
 </style>
 </head>
 <body>
+<div class="sparkles" aria-hidden="true"></div>
 <button id="knapp">Tryck här</button>
-<div id="scare"><img src="assets/ansikte.jpg" alt=""></div>
+<div id="scare" aria-hidden="true">
+  <!-- The face, turned into a unicorn with a horn, ears, a rainbow mane and sparkles -->
+  <svg viewBox="-20 -75 240 275" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="horn" x1="0" y1="1" x2="0" y2="0">
+        <stop offset="0" stop-color="#ffd84d"/>
+        <stop offset=".5" stop-color="#ff9fd0"/>
+        <stop offset="1" stop-color="#fff6c2"/>
+      </linearGradient>
+      <clipPath id="round"><ellipse cx="100" cy="105" rx="95" ry="105"/></clipPath>
+    </defs>
+    <!-- Rainbow mane behind the head -->
+    <g class="mane" fill="none" stroke-width="14" stroke-linecap="round">
+      <path d="M40 120 C 10 60, 40 0, 100 5 C 160 0, 190 60, 160 120" stroke="#ff5fa2"/>
+      <path d="M30 140 C -5 60, 35 -15, 100 -8 C 165 -15, 205 60, 170 140" stroke="#ffb347"/>
+      <path d="M20 160 C -20 60, 30 -30, 100 -21 C 170 -30, 220 60, 180 160" stroke="#fff35c"/>
+      <path d="M10 180 C -35 60, 25 -45, 100 -34 C 175 -45, 235 60, 190 180" stroke="#6dff9b"/>
+      <path d="M0 200 C -50 60, 20 -60, 100 -47 C 180 -60, 250 60, 200 200" stroke="#5ec8ff"/>
+    </g>
+    <image class="face" href="assets/ansikte.jpg" x="0" y="0" width="200" height="200" preserveAspectRatio="xMidYMid slice" clip-path="url(#round)"/>
+    <!-- Ears -->
+    <polygon points="52,30 68,-12 84,26" fill="#fff" stroke="#e8a" stroke-width="3"/>
+    <polygon points="60,26 68,2 77,24" fill="#ffb6d9"/>
+    <polygon points="116,26 132,-12 148,30" fill="#fff" stroke="#e8a" stroke-width="3"/>
+    <polygon points="123,24 132,2 140,26" fill="#ffb6d9"/>
+    <!-- Horn -->
+    <polygon points="86,40 114,40 100,-70" fill="url(#horn)" stroke="#d4a017" stroke-width="2"/>
+    <g stroke="#d4a017" stroke-width="2.5">
+      <line x1="88" y1="26" x2="112" y2="18"/>
+      <line x1="91" y1="6"  x2="109" y2="0"/>
+      <line x1="94" y1="-14" x2="106" y2="-18"/>
+      <line x1="97" y1="-34" x2="103" y2="-36"/>
+    </g>
+    <!-- Sparkles -->
+    <g fill="#fff" stroke="#ffd84d" stroke-width="1.5">
+      <path class="star" d="M30 20 l4 10 10 4 -10 4 -4 10 -4 -10 -10 -4 10 -4z"/>
+      <path class="star" d="M170 30 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3z"/>
+      <path class="star" d="M100 -72 l4 10 10 4 -10 4 -4 10 -4 -10 -10 -4 10 -4z"/>
+      <path class="star" d="M15 150 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3z"/>
+      <path class="star" d="M185 140 l4 10 10 4 -10 4 -4 10 -4 -10 -10 -4 10 -4z"/>
+      <path class="star" d="M150 -20 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3z"/>
+      <path class="star" d="M45 -30 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3z"/>
+    </g>
+  </svg>
+</div>
 
 <script>
 const knapp = document.getElementById('knapp');
 const scare = document.getElementById('scare');
+
+// Sprinkle blinking sparkles over the start screen
+const sparkles = document.querySelector('.sparkles');
+const emoji = ['✨', '⭐', '🌈', '🦄', '💖'];
+for (let i = 0; i < 40; i++) {
+  const s = document.createElement('i');
+  s.textContent = emoji[i % emoji.length];
+  s.style.cssText = `left:${Math.random() * 95}%;top:${Math.random() * 95}%;` +
+    `--d:${(0.6 + Math.random()).toFixed(2)}s;--delay:${(-Math.random()).toFixed(2)}s`;
+  sparkles.appendChild(s);
+}
 
 // A scream made with the Web Audio API, so no sound file is needed
 function scream() {
