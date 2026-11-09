@@ -9,3 +9,10 @@ Flyghallen ligger öster om Egyptiska salen och visar tre flygplansmodeller. Kna
 i nordöstra hörnet tänder motorerna, och den hängande jetens efterbrännkammare skjuter ut en guldstjärna.
 Koden finns i `rooms/flyghallen.js` (salen) och `rooms/flygplan.js` (modellerna); kopplingen till spelet är
 några rader i `game.js` markerade med "Flyghallen".
+
+### Slutbossen: Valvgorillan Bruno
+När alla stjärnor är hittade och vakten kliver in i Skattkammaren hoppar en gorilla ner från taket.
+Fighten är ett quick time event: en vit ring krymper mot en tangent (W, A, S eller D), och man ska trycka
+exakt när ringen når den. Åtta träffar slår Bruno knockout och vinner spelet; tre missar (fel tangent,
+för tidigt eller för sent) och vakten blir nedslagen och får gå en ny rond. Koden finns i `rooms/boss.js`;
+kopplingen till spelet är några rader i `game.js` markerade med "Slutbossen".

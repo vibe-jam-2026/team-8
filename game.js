@@ -1,6 +1,7 @@
 // Museum Aurora 3D: a third-person night-guard game.
 import * as THREE from './vendor/three.module.min.js';
 import { buildFlyghallen } from './rooms/flyghallen.js';
+import { buildBoss } from './rooms/boss.js';
 
 const $ = id => document.getElementById(id);
 const TAU = Math.PI * 2;
@@ -603,11 +604,15 @@ function buildGuard(){
 const guard = buildGuard();
 const S = {state:'loading', room:null, visited:new Set(), stars:0, t0:0, tEnd:0, sound:true, yaw:0, pitch:.32, heading:Math.PI, walk:0, alarm:false, shake:0, cine:null};
 const pos = new THREE.Vector3();
+// Slutbossen: gorillan i Skattkammaren (rooms/boss.js)
+const boss = buildBoss({scene, room: ROOMS.skatt, guard, S, pos, tween, wait, tone, burst: (...a) => burst(...a),
+  shake: v => { S.shake = Math.max(S.shake, v); }, onStart: () => { hidePlaque(); near = null; }, onWin: () => win()});
 function resetGame(){
   pos.set(ROOMS.entre.c.x, 0, ROOMS.entre.c.z + 3); S.heading = Math.PI; S.yaw = 0; S.pitch = .32;
   guard.body.rotation.set(0, 0, 0); guard.body.position.set(0, 0, 0); guard.head.visible = true; guard.stump.visible = false;
   stars.forEach(s => { s.taken = false; s.g.visible = true; }); S.stars = 0;
   hangar?.reset();
+  boss.reset();
   closeVault(); drawLockSign(0);
   dino.skull.visible = true; dino.skull.scale.setScalar(1); dino.head.visible = false; dino.head.scale.setScalar(.001); dino.neckRod.visible = false;
   dino.button.position.y = dino.buttonY;
@@ -685,6 +690,7 @@ const keys = {};
 addEventListener('keydown', e => {
   if (e.target.tagName === 'BUTTON' && (e.code === 'Space' || e.code === 'Enter')) return;
   keys[e.code] = true;
+  if (S.state === 'boss') boss.key(e.code);
   if (['KeyW','KeyA','KeyS','KeyD','Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) e.preventDefault();
   if (e.code === 'KeyE' || e.code === 'Enter') use();
   if (e.code === 'KeyM') toggleMap();
@@ -757,9 +763,9 @@ function collect(s){
   else showPlaque('Guldstjärna!', `${S.stars} av ${STAR_TOTAL}`, 'Du stoppar stjärnan i fickan. Fortsätt leta i de andra salarna.');
 }
 function win(){
-  if (S.state !== 'play') return; S.state = 'won'; S.tEnd = performance.now(); sfx.win(); hidePlaque(); document.exitPointerLock?.();
+  if (S.state !== 'play' && S.state !== 'boss') return; S.state = 'won'; S.tEnd = performance.now(); sfx.win(); hidePlaque(); document.exitPointerLock?.();
   burst(new THREE.Vector3(ROOMS.skatt.c.x, 2.2, ROOMS.skatt.c.z - 2.5), ['#ffd34d', '#ff5a5f', '#3c91e6', '#3cb371', '#fff'], 80, 4);
-  $('winText').textContent = `Du hittade alla ${STAR_TOTAL} guldstjärnor, öppnade valvet och räddade Aurorakronan på ${fmt(S.tEnd - S.t0)}.`;
+  $('winText').textContent = `Du hittade alla ${STAR_TOTAL} guldstjärnor, öppnade valvet, slog Valvgorillan Bruno knockout och räddade Aurorakronan på ${fmt(S.tEnd - S.t0)}.`;
   setTimeout(() => $('win').hidden = false, 1200);
 }
 
@@ -831,6 +837,8 @@ function frame(now){
     // room
     const r = roomAt(pos.x, pos.z);
     if (r && r.key !== S.room){ S.room = r.key; S.visited.add(r.key); $('roomTitle').textContent = r.name; $('roomSub').textContent = 'Museum Aurora · ' + r.sub; toast(r.name, r.sub); }
+    // Slutbossen: gorillan väntar i Skattkammaren när valvet är öppet
+    if (r && r.key === 'skatt' && vault?.open && !boss.beaten && boss.phase === 'idle') boss.start();
     // stars
     for (const s of stars) if (!s.taken && !s.hidden && Math.hypot(s.x - pos.x, s.z - pos.z) < 1.2) collect(s);
     // nearest interactable
@@ -845,7 +853,7 @@ function frame(now){
   guard.g.position.copy(pos); guard.g.rotation.y = S.heading;
   if (moving){ S.walk += dt * speed * 2.6; } else S.walk *= Math.pow(.001, dt);
   const sw = moving ? Math.sin(S.walk) * .65 : Math.sin(S.walk) * .65 * Math.min(1, Math.abs(S.walk));
-  if (S.state !== 'dead' && S.state !== 'doom' || moving){
+  if (S.state !== 'dead' && S.state !== 'doom' && S.state !== 'boss' && !(S.state === 'won' && boss.beaten) || moving){
     guard.legL.rotation.x = sw; guard.legR.rotation.x = -sw; guard.armL.rotation.x = -sw * .8; guard.armR.rotation.x = .5 + sw * .3;
     guard.body.position.y = moving ? Math.abs(Math.cos(S.walk)) * .04 : 0;
   }
@@ -868,6 +876,7 @@ function frame(now){
   for (const p of pulsers) p.light.intensity = p.base * (p.fast ? (.6 + .4 * Math.abs(Math.sin(t * 4 + p.phase))) : (.8 + .2 * Math.sin(t * 1.5 + p.phase)));
   for (const g of swayers) g.rotation.z = Math.sin(t * .8) * .02;
   hangar?.update(dt, t);
+  boss.update(dt, t);
   if (vault && !vault.open) vault.wheel.rotation.z = Math.sin(t * .5) * .05;
   noiseT -= dt;
   if (noiseT < 0){ noiseT = .07; for (const n of noiseScreens){ const g = n.canvas.getContext('2d'), d = g.createImageData(96, 60); for (let i = 0; i < d.data.length; i += 4){ const v = Math.random() * 200 + 30; d.data[i] = v * .9; d.data[i+1] = v * .95; d.data[i+2] = v; d.data[i+3] = 255; } g.putImageData(d, 0, 0); n.tex.needsUpdate = true; } }
@@ -886,4 +895,4 @@ pos.set(ROOMS.entre.c.x, 0, ROOMS.entre.c.z + 3);
 progress();
 requestAnimationFrame(frame);
 // small hook for automated tests
-window.__museum = {S, pos, stars, ROOMS, setTimeScale(v){ TS = v; }, teleport(x, z, yaw){ pos.x = x; pos.z = z; if (yaw !== undefined) S.yaw = yaw; }, use, doom, near: () => near};
+window.__museum = {S, pos, stars, ROOMS, setTimeScale(v){ TS = v; }, teleport(x, z, yaw){ pos.x = x; pos.z = z; if (yaw !== undefined) S.yaw = yaw; }, use, doom, boss, near: () => near};
