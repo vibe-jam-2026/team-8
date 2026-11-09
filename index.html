@@ -26,17 +26,17 @@ button.primary:hover{filter:brightness(1.08)}
 #prompt kbd{display:inline-block;background:var(--gold);color:#2a2112;border-radius:5px;padding:0 7px;font:700 13px/20px system-ui,sans-serif;margin-right:8px}
 #prompt.danger{border-color:var(--red);color:#ffd6d6}
 #prompt.danger kbd{background:var(--red);color:#fff}
-#toast{position:fixed;left:50%;top:22%;transform:translateX(-50%);font:600 34px/1.2 Georgia,serif;letter-spacing:.02em;text-shadow:0 3px 18px rgba(0,0,0,.8);opacity:0;transition:opacity .5s;pointer-events:none;z-index:4;text-align:center;white-space:nowrap}
+#toast{position:fixed;left:50%;top:76px;transform:translateX(-50%);font:600 24px/1.2 Georgia,serif;letter-spacing:.02em;text-shadow:0 3px 18px rgba(0,0,0,.8);opacity:0;transition:opacity .5s;pointer-events:none;z-index:4;text-align:center;white-space:nowrap}
 #toast small{display:block;font:400 12px/2 system-ui,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:var(--gold)}
 #toast.show{opacity:1}
 #redFlash{position:fixed;inset:0;background:#c1121f;opacity:0;pointer-events:none;mix-blend-mode:multiply;z-index:2}
 #redFlash.on{animation:alarm .45s ease-in-out infinite alternate}
 @keyframes alarm{from{opacity:0}to{opacity:.5}}
-.plaque{position:fixed;left:50%;top:84px;transform:translate(-50%,-10px);width:min(540px,calc(100% - 32px));background:var(--paper);color:var(--paperInk);border-radius:8px;padding:16px 20px 12px;box-shadow:0 16px 50px rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:6;border-top:4px solid #b8913f}
-.plaque.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
-.plaque h3{margin:0 0 2px;font:600 20px/1.25 Georgia,serif}
-.plaque .meta{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#7b6f5c;margin-bottom:8px}
-.plaque p{margin:0 0 8px;font-size:15px}
+.plaque{position:fixed;left:16px;top:96px;transform:translateX(-12px);width:min(330px,calc(100% - 32px));background:rgba(244,236,216,.78);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);color:var(--paperInk);border-radius:8px;padding:12px 16px 8px;box-shadow:0 10px 30px rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:6;border-left:4px solid #b8913f}
+.plaque.show{opacity:1;transform:none;pointer-events:auto}
+.plaque h3{margin:0 0 2px;font:600 17px/1.25 Georgia,serif}
+.plaque .meta{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#6b604e;margin-bottom:6px}
+.plaque p{margin:0 0 6px;font-size:14px;line-height:1.45}
 .plaque .close{float:right;background:transparent;border:1px solid #cdbf9f;color:var(--paperInk);font-size:13px;padding:3px 10px;margin:-4px -6px 0 8px}
 .overlay{position:fixed;inset:0;background:rgba(10,8,14,.72);display:flex;align-items:center;justify-content:center;padding:16px;z-index:10;backdrop-filter:blur(4px)}
 .overlay[hidden]{display:none}
@@ -68,7 +68,7 @@ button.primary:hover{filter:brightness(1.08)}
   #prompt{bottom:180px}
   .foot{display:none}
 }
-@media (max-width:600px){.room-name{font-size:18px}.card{padding:22px 18px}.card h1{font-size:26px}#toast{font-size:26px}}
+@media (max-width:600px){.room-name{font-size:18px}.card{padding:22px 18px}.card h1{font-size:26px}#toast{font-size:20px;top:110px}.plaque{top:120px}}
 @media (prefers-reduced-motion:reduce){#redFlash.on{animation:none;opacity:.3}}
 </style>
 </head>
