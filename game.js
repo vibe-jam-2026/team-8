@@ -46,9 +46,10 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x040306);
-scene.fog = new THREE.FogExp2(0x040306, 0.05);
+scene.fog = new THREE.FogExp2(0x040306, 0.065);
 const camera = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, 0.05, 120);
-scene.add(new THREE.HemisphereLight(0x7880a8, 0x140f0c, 0.13));
+scene.add(new THREE.HemisphereLight(0x7880a8, 0x140f0c, 0.09));
+for (const k in ROOMS) ROOMS[k].li *= .8;
 
 // ---------- helpers ----------
 function canvasTex(w, h, draw, repeat) {
@@ -331,8 +332,8 @@ function dangerButton(k, x, z) {
   addMesh(g, new THREE.BoxGeometry(.7, 1, .7), mat(0xffffff, { map: hazardTex() }), 0, .5, 0);
   addMesh(g, new THREE.CylinderGeometry(.28, .3, .08, 20), M.black, 0, 1.04, 0);
   btnCap = addMesh(g, new THREE.CylinderGeometry(.2, .22, .14, 20), M.red, 0, 1.12, 0);
-  addMesh(g, new THREE.CylinderGeometry(.03, .03, 1.2), M.steel, -.25, 1.6, -.25);
-  const sign = addMesh(g, new THREE.PlaneGeometry(1.2, .5), new THREE.MeshBasicMaterial({ map: canvasTex(256, 108, (c, w, h) => { c.fillStyle = '#f2c94c'; c.fillRect(0, 0, w, h); c.strokeStyle = '#111'; c.lineWidth = 10; c.strokeRect(5, 5, w - 10, h - 10); c.fillStyle = '#c1121f'; c.font = 'bold 44px system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('KLICKA INTE!', w / 2, h / 2 + 2); }), side: THREE.DoubleSide }), -.25, 2.05, -.25);
+  addMesh(g, new THREE.CylinderGeometry(.03, .03, .8), M.steel, -.25, 1.4, -.25);
+  const sign = addMesh(g, new THREE.PlaneGeometry(1.28, .5), new THREE.MeshBasicMaterial({ map: canvasTex(512, 200, (c, w, h) => { c.fillStyle = '#f2c94c'; c.fillRect(0, 0, w, h); c.strokeStyle = '#111'; c.lineWidth = 16; c.strokeRect(8, 8, w - 16, h - 16); c.fillStyle = '#c1121f'; c.textAlign = 'center'; c.textBaseline = 'middle'; let fs = 96; do { c.font = `900 ${fs}px system-ui, sans-serif`; fs -= 4; } while (c.measureText('KLICKA INTE!').width > w - 60); c.fillText('KLICKA INTE!', w / 2, h / 2 + 4); }), side: THREE.DoubleSide }), -.25, 2.05, -.25);
   sign.rotation.y = Math.PI / 4;
   collide(k, x, z, .35, .35);
   btnWorld = g.position.clone();
@@ -345,6 +346,91 @@ function boneBetween(parent, a, b, r, m) {
   const mesh = new THREE.Mesh(new THREE.CylinderGeometry(r * .8, r, 1, 8), m); mesh.castShadow = true; parent.add(mesh); setBetween(mesh, a, b); return mesh;
 }
 function setBetween(mesh, a, b) { mesh.position.copy(a).add(b).multiplyScalar(.5); mesh.scale.set(1, a.distanceTo(b), 1); mesh.quaternion.setFromUnitVectors(UP, b.clone().sub(a).normalize()); }
+
+// ---------- the face: a T-rex head made from the photo ----------
+// Regions in the 360x350 photo: [x, y, width, height]
+const FACE = {
+  eyeR: [106, 124, 76, 54],   // left in the photo, goes on the dinosaur's right side
+  eyeL: [178, 126, 76, 54],
+  nose: [138, 150, 70, 60],
+  lip: [122, 194, 116, 32],
+  beard: [108, 216, 144, 76],
+  hair: [96, 6, 168, 60],
+  skin: [116, 180, 18, 18],
+};
+const photoImg = new Image(), faceTex = {};
+function photoCrop(name, [sx, sy, sw, sh], soft = .38, repeat) {
+  const ow = 256, oh = Math.round(ow * sh / sw);
+  const t = canvasTex(ow, oh, () => {}, repeat);
+  t.userData.draw = () => {
+    const g = t.userData.g; g.globalCompositeOperation = 'source-over'; g.clearRect(0, 0, ow, oh);
+    g.filter = 'contrast(1.4) saturate(1.15)'; g.drawImage(photoImg, sx, sy, sw, sh, 0, 0, ow, oh); g.filter = 'none';
+    if (soft) { // fade the edges so the patch melts into the skin
+      g.globalCompositeOperation = 'destination-in'; g.save(); g.translate(ow / 2, oh / 2); g.scale(1, oh / ow);
+      const gr = g.createRadialGradient(0, 0, ow / 2 * (1 - soft), 0, 0, ow / 2); gr.addColorStop(0, '#000'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = gr; g.fillRect(-ow / 2, -ow / 2, ow, ow); g.restore(); g.globalCompositeOperation = 'source-over';
+    }
+    t.needsUpdate = true;
+  };
+  faceTex[name] = t; return t;
+}
+photoCrop('eyeR', FACE.eyeR); photoCrop('eyeL', FACE.eyeL); photoCrop('nose', FACE.nose, .42);
+photoCrop('lip', FACE.lip, .3); photoCrop('beard', FACE.beard, .32); photoCrop('hair', FACE.hair, 0, [3, 1]);
+// Each head part is a sphere; its texture is an equirectangular skin map with the photo features painted in
+// at the right longitude (phi) and latitude (theta), so they are lit exactly like the skin around them.
+const PARTS = {
+  cran: [{ f: 'eyeR', phi: Math.PI / 2 + .55, th: 1.3, pw: 1.3, tw: .95 }, { f: 'eyeL', phi: 3 * Math.PI / 2 - .55, th: 1.3, pw: 1.3, tw: .95 }],
+  snout: [{ f: 'nose', phi: Math.PI, th: .85, pw: 1.25, tw: .95 }, { f: 'lip', phi: Math.PI, th: 1.95, pw: 1.9, tw: .62 }],
+  jaw: [{ f: 'beard', phi: Math.PI, th: 1.7, pw: 1.9, tw: 1.1 }],
+};
+const partTex = {};
+for (const k in PARTS) partTex[k] = canvasTex(1024, 512, (g, w, h) => { g.fillStyle = '#c49a86'; g.fillRect(0, 0, w, h); });
+function paintHead() {
+  const c = document.createElement('canvas'); c.width = c.height = 8; const cg = c.getContext('2d');
+  const [sx, sy, sw, sh] = FACE.skin; cg.drawImage(photoImg, sx, sy, sw, sh, 0, 0, 8, 8);
+  const d = cg.getImageData(0, 0, 8, 8).data; let r = 0, gr = 0, b = 0; for (let i = 0; i < d.length; i += 4) { r += d[i]; gr += d[i + 1]; b += d[i + 2]; }
+  const n = d.length / 4; r = r / n | 0; gr = gr / n | 0; b = b / n | 0;
+  for (const k in PARTS) {
+    const { g, canvas } = partTex[k].userData, w = canvas.width, h = canvas.height, R = rng(k.length * 31);
+    g.fillStyle = `rgb(${r},${gr},${b})`; g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 900; i++) { g.fillStyle = `rgba(${R() < .5 ? '120,40,40' : '60,40,30'},${.03 + R() * .06})`; g.beginPath(); g.arc(R() * w, R() * h, 3 + R() * 22, 0, 7); g.fill(); }
+    g.strokeStyle = 'rgba(70,40,90,.3)'; g.lineWidth = 2;
+    for (let i = 0; i < 30; i++) { g.beginPath(); let x = R() * w, y = R() * h; g.moveTo(x, y); for (let s = 0; s < 7; s++) { x += (R() - .5) * 90; y += (R() - .5) * 60; g.lineTo(x, y); } g.stroke(); }
+    if (k === 'cran') { // his hair: low at the back, receding toward the front
+      g.save(); g.beginPath(); g.moveTo(0, 0);
+      for (let x = 0; x <= w; x += 8) { const phi = x / w * Math.PI * 2, lim = .45 + 1.0 * (1 + Math.cos(phi)) / 2 + Math.sin(x * .09) * .04; g.lineTo(x, lim / Math.PI * h); }
+      g.lineTo(w, 0); g.closePath(); g.clip();
+      g.fillStyle = g.createPattern(faceTex.hair.userData.canvas, 'repeat'); g.fillRect(0, 0, w, h);
+      g.strokeStyle = 'rgba(30,18,8,.5)'; g.lineWidth = 2; for (let i = 0; i < 160; i++) { const x = R() * w; g.beginPath(); g.moveTo(x, 0); g.quadraticCurveTo(x + (R() - .5) * 30, h * .2, x + (R() - .5) * 20, h * (.2 + R() * .3)); g.stroke(); }
+      g.restore();
+    }
+    for (const ft of PARTS[k]) { const src = faceTex[ft.f].userData.canvas, x = (ft.phi - ft.pw / 2) / (Math.PI * 2) * w, y = (ft.th - ft.tw / 2) / Math.PI * h; g.drawImage(src, x, y, ft.pw / (Math.PI * 2) * w, ft.tw / Math.PI * h); }
+    partTex[k].needsUpdate = true;
+  }
+}
+photoImg.onload = () => { for (const k in faceTex) faceTex[k].userData.draw(); paintHead(); };
+photoImg.src = window.DINO_PHOTO || 'assets/dino-head.jpg';
+function buildFaceHead(flesh, toothM) {
+  const skinOf = k => mat(0xffffff, { map: partTex[k], roughness: .42, emissiveMap: partTex[k], emissive: 0xffffff, emissiveIntensity: .08 });
+  const gum = mat(0x4a0610, { roughness: .3 });
+  dino.skinMat = mat(0xffffff, { map: partTex.snout, roughness: .42 });
+  const ball = (parent, k, x, y, z, sx, sy, sz) => { const b = new THREE.Group(); b.position.set(x, y, z); b.scale.set(sx, sy, sz); parent.add(b); addMesh(b, new THREE.SphereGeometry(.5, 48, 32), skinOf(k), 0, 0, 0); return b; };
+  // skull with his eyes on the sides and his hair on top
+  ball(flesh, 'cran', .3, .28, 0, 1.05, .9, .92);
+  const strand = mat(0x3a2616, { roughness: .9 });
+  for (let i = 0; i < 16; i++) { const zz = (i / 15 - .5) * .8, len = .35 + Math.random() * .5; const s = addMesh(flesh, new THREE.CylinderGeometry(.018, .008, len, 5), strand, -.12 + Math.random() * .12, .3 - len / 2, zz); s.rotation.z = -.15 + Math.random() * .3; s.rotation.x = zz * .6; }
+  for (const s of [-1, 1]) addMesh(flesh, new THREE.SphereGeometry(.12, 12, 8), skinOf('cran'), .62, .52, .2 * s).scale.set(1.4, .5, .8); // brow ridges
+  // snout with his nose on top and his mustache along the upper lip
+  ball(flesh, 'snout', 1.02, .1, 0, 1.05, .52, .66);
+  for (let i = 0; i < 9; i++) for (const s of [-1, 1]) { const a = i / 8; addMesh(flesh, new THREE.ConeGeometry(.035 + .015 * (1 - a), .2, 6), toothM, .58 + a * .88, -.16, s * (.3 - a * .14)).rotation.x = Math.PI; }
+  addMesh(flesh, new THREE.BoxGeometry(1.0, .06, .48), gum, 1.0, -.1, 0);
+  // lower jaw with his beard
+  const fjaw = new THREE.Group(); fjaw.position.set(.2, -.12, 0); flesh.add(fjaw); dino.fjaw = fjaw;
+  ball(fjaw, 'jaw', .78, -.1, 0, 1.0, .3, .6);
+  addMesh(fjaw, new THREE.BoxGeometry(.95, .05, .46), gum, .78, -.01, 0);
+  for (let i = 0; i < 8; i++) for (const s of [-1, 1]) { const a = i / 7; addMesh(fjaw, new THREE.ConeGeometry(.03 + .012 * (1 - a), .17, 6), toothM, .38 + a * .8, .06, s * (.27 - a * .11)); }
+  dino.mouth = new THREE.Object3D(); dino.mouth.position.set(1.05, -.22, 0); flesh.add(dino.mouth);
+}
 const dino = {};
 function buildDino(k, x, z) {
   const g = group(k, x, z); dino.g = g;
@@ -381,18 +467,9 @@ function buildDino(k, x, z) {
   const jaw = new THREE.Group(); jaw.position.set(.15, -.18, 0); skull.add(jaw); dino.jaw = jaw;
   addMesh(jaw, new THREE.BoxGeometry(1.35, .13, .44), M.bone, .7, -.06, 0);
   for (let i = 0; i < 6; i++) for (const s of [-1, 1]) addMesh(jaw, new THREE.ConeGeometry(.03, .12, 6), toothM, .55 + i * .12, .06, .15 * s);
-  // the flesh head with the photo for a face (hidden until the button is pressed)
+  // the flesh head: a T-rex head made from the photo (hidden until the button is pressed)
   const flesh = new THREE.Group(); flesh.visible = false; flesh.scale.setScalar(.01); hp.add(flesh); dino.flesh = flesh;
-  const photo = new THREE.TextureLoader().load(window.DINO_PHOTO || 'assets/dino-head.jpg'); photo.encoding = THREE.sRGBEncoding;
-  const skin = mat(0x4a5a32, { roughness: .6 }), gum = mat(0x7a1020, { roughness: .4 });
-  addMesh(flesh, new THREE.BoxGeometry(1.3, .9, .9), [mat(0xffffff, { map: photo, roughness: .6 }), skin, skin, skin, skin, skin], .7, .2, 0);
-  addMesh(flesh, new THREE.BoxGeometry(1.2, .1, .8), gum, .72, -.27, 0);
-  for (let i = 0; i < 8; i++) for (const s of [-1, 1]) addMesh(flesh, new THREE.ConeGeometry(.045, .2, 6), toothM, .2 + i * .14, -.38, .33 * s).rotation.x = Math.PI;
-  const fjaw = new THREE.Group(); fjaw.position.set(.1, -.3, 0); flesh.add(fjaw); dino.fjaw = fjaw;
-  addMesh(fjaw, new THREE.BoxGeometry(1.25, .22, .82), skin, .62, -.13, 0);
-  addMesh(fjaw, new THREE.BoxGeometry(1.15, .04, .7), gum, .62, -.01, 0);
-  for (let i = 0; i < 7; i++) for (const s of [-1, 1]) addMesh(fjaw, new THREE.ConeGeometry(.04, .17, 6), toothM, .15 + i * .14, .07, .32 * s);
-  dino.mouth = new THREE.Object3D(); dino.mouth.position.set(.75, -.32, 0); flesh.add(dino.mouth);
+  buildFaceHead(flesh, toothM);
   const ce = center(k);
   info(k, x + 3.2, z - 1.6, ['Aurorasaurus borealis', 'Sen krita, ca 70 miljoner år', 'Hittades 1931 i en grusgrop utanför Kiruna (det är inte sant, men vi tycker om historien). Skelettet består av 64 % äkta ben och 36 % gips.'], 1.6);
   void ce;
@@ -423,6 +500,16 @@ function drawLock() {
   g.fillStyle = '#2b2f36'; g.beginPath(); g.arc(w / 2, h / 2, 70, 0, 7); g.fill();
   for (let i = 0; i < STAR_TOTAL; i++) { const a = -Math.PI / 2 + i / STAR_TOTAL * Math.PI * 2; g.fillStyle = i < S.stars.size ? '#ffcf4a' : '#15171b'; g.font = '34px serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('★', w / 2 + Math.cos(a) * 46, h / 2 + Math.sin(a) * 46); }
   lockTex.needsUpdate = true;
+}
+
+function bloodWriting(k, side, along, y, text, w = 4) {
+  const t = canvasTex(1024, 300, (g, cw, ch) => {
+    const R = rng(text.length * 13); g.clearRect(0, 0, cw, ch); g.fillStyle = '#5e0006'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    let fs = 150; do { g.font = `italic 900 ${fs}px Georgia, serif`; fs -= 6; } while (g.measureText(text).width > cw - 60);
+    g.fillText(text, cw / 2, ch * .4); const tw = g.measureText(text).width;
+    for (let i = 0; i < 22; i++) { const x = cw / 2 - tw / 2 + R() * tw, len = 20 + R() * 120, wd = 3 + R() * 6; g.fillRect(x, ch * .45, wd, len); g.beginPath(); g.arc(x + wd / 2, ch * .45 + len, wd * .9, 0, 7); g.fill(); }
+  });
+  onWall(new THREE.Mesh(new THREE.PlaneGeometry(w, w * 300 / 1024), new THREE.MeshStandardMaterial({ map: t, transparent: true, roughness: .25 })), k, side, along, y, null, .012);
 }
 
 // ---------- museum contents ----------
@@ -475,6 +562,10 @@ function drawLock() {
   urn('egypt', 7.6, -4, .8, 0x3f6f7d, ['Kruka med lock', 'Fajans', 'Den blåa glasyren har behållit färgen i 3000 år, bättre än de flesta köksmöbler.']);
   addStar('egypt', 8.9, .4, -6.8);
   buildVaultDoor();
+  bloodWriting('entre', 's', -6, 2.5, 'DE SER DIG');
+  bloodWriting('modern', 'e', 2, 2.6, 'HON STÅR BAKOM DIG', 5);
+  bloodWriting('mineral', 'n', 0, 2.6, 'GÅ HEM');
+  bloodWriting('konst', 's', 5, 2.4, 'RÄKNA NUNNORNA');
   // Skattkammaren
   chest('skatt', -5, -4, ['Kistan', 'Sjörövarbyte, 1600-tal', 'Fylld med mynt från ett dussin länder. Den beslagtogs från en kapten som inte kunde förklara var han fått dem ifrån.']);
   chest('skatt', 5, -4, ['Kistan', 'Okänd ägare', 'Lappen på locket säger: ”Rör ej. Gäller även nattvakter.”']);
@@ -509,7 +600,7 @@ const guard = {};
   for (const s of [-1, 1]) addMesh(head, new THREE.SphereGeometry(.025, 6, 4), M.black, .07 * s, .3, .17);
   guard.neck = new THREE.Object3D(); guard.neck.position.y = 1.7; body.add(guard.neck);
   // flashlight
-  const spot = new THREE.SpotLight(0xfff2d0, 2.2, 22, .5, .45, 1.2);
+  const spot = new THREE.SpotLight(0xfff2d0, 2.2, 22, .43, .5, 1.2);
   spot.position.set(.37, 1.05, .25); spot.castShadow = true; spot.shadow.mapSize.set(1024, 1024); spot.shadow.bias = -.002; spot.shadow.camera.near = .2;
   spot.target.position.set(.3, .3, 6); body.add(spot, spot.target); guard.spot = spot;
   const c = center('entre'); p.position.set(c.x, 0, c.z + 5);
@@ -595,6 +686,19 @@ const sfx = {
   spurt(p) { if (!A()) return; const t = ac.currentTime; hiss(t, .01, .3 * p, .25, 'lowpass', 650, 260, 2); hiss(t + .02, .02, .12 * p, .2, 'bandpass', 300, 900, 7); },
   thud(p) { if (!A()) return; const t = ac.currentTime; tone('sine', 75, 34, t, .005, .8 * p, .45); hiss(t, .005, .5 * p, .2, 'lowpass', 260, 0, 1); },
   chew() { if (!A()) return; for (let i = 0; i < 3; i++) setTimeout(() => sfx.crunch(.45), i * 280); },
+  nunScream() { if (!A()) return; const t = ac.currentTime, ws = shaper(90), hp = ac.createBiquadFilter(), g = envGain(t, .012, 1.2, 1.35);
+    hp.type = 'highpass'; hp.frequency.value = 450; ws.connect(hp).connect(g).connect(master);
+    for (const f of [1150, 1390, 1720, 2210, 2870]) { const o = ac.createOscillator(), l = ac.createOscillator(), lg = ac.createGain(); o.type = 'sawtooth';
+      o.frequency.setValueAtTime(f * .75, t); o.frequency.exponentialRampToValueAtTime(f * 1.2, t + .22); o.frequency.exponentialRampToValueAtTime(f * .85, t + 1.4);
+      l.frequency.value = 15 + Math.random() * 12; lg.gain.value = f * .07; l.connect(lg).connect(o.frequency); o.connect(ws); o.start(t); l.start(t); o.stop(t + 1.5); l.stop(t + 1.5); }
+    hiss(t, .008, .7, 1.25, 'bandpass', 3200, 1800, 1.4, ws); tone('sine', 80, 32, t, .005, 1, .7); },
+  distantScream() { if (!A()) return; const t = ac.currentTime, lp = ac.createBiquadFilter(), g = envGain(t, .2, .12, 1.6); lp.type = 'lowpass'; lp.frequency.value = 900; lp.connect(g).connect(master);
+    for (const f of [700, 930]) tone('sawtooth', f, f * 1.25, t, .2, .5, 1.5, lp); },
+  whisper(v) { if (!A()) return; const t = ac.currentTime; for (let i = 0; i < 7; i++) hiss(t + i * .11 + Math.random() * .05, .02, .07 * v, .09, 'bandpass', 1700 + Math.random() * 2800, 0, 7); },
+  heartbeat(v) { if (!A()) return; const t = ac.currentTime; tone('sine', 55, 38, t, .01, .55 * v, .14); tone('sine', 50, 36, t + .2, .01, .4 * v, .14); },
+  lightsOut() { if (!A()) return; const t = ac.currentTime; tone('square', 90, 60, t, .002, .25, .06); tone('sawtooth', 120, 50, t, .01, .1, .8); hiss(t, .005, .2, .3, 'lowpass', 300, 0, 1); },
+  sting() { if (!A()) return; const t = ac.currentTime, ws = shaper(20), g = envGain(t, .01, .45, 1.6); ws.connect(g).connect(master);
+    for (const f of [311, 329.6, 466, 622]) tone('sawtooth', f, f * .97, t, .005, .25, 1.5, ws); hiss(t, .005, .4, .9, 'highpass', 2500, 0, 1, ws); },
   gameOver() { if (!A()) return; const t = ac.currentTime, lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 400; lp.connect(master); tone('sawtooth', 55, 52, t, .3, .25, 3, lp); tone('sawtooth', 58.3, 54, t, .3, .25, 3, lp); tone('sine', 110, 98, t, .3, .15, 3, lp); },
   win() { if (!A()) return; const t = ac.currentTime; [523, 659, 784, 1047, 1319].forEach((f, i) => tone('triangle', f, f, t + i * .12, .01, .12, .5)); },
 };
@@ -658,7 +762,7 @@ const endPtr = e => { if (joy && e.pointerId === joy.id) { joy = null; $('joy').
 canvas.addEventListener('pointerup', endPtr); canvas.addEventListener('pointercancel', endPtr);
 
 // ---------- movement ----------
-function blocked(x, z) { const r = .3; for (const c of colliders) if (Math.abs(x - c.x) < c.hw + r && Math.abs(z - c.z) < c.hd + r) return true; return false; }
+function blocked(x, z, r = .3) { for (const c of colliders) if (Math.abs(x - c.x) < c.hw + r && Math.abs(z - c.z) < c.hd + r) return true; return false; }
 let stepT = 0, walkPhase = 0;
 function updatePlayer(dt) {
   const k = S.keys;
@@ -736,7 +840,7 @@ async function doom() {
   await wait(1300);
   // the skull becomes a face
   await tween(250, k => dino.skull.scale.setScalar(Math.max(.01, 1 - k)));
-  S.phase = 'face'; dino.skull.visible = false; dino.flesh.visible = true; sfx.roar(); dino.eyeMat.emissiveIntensity = 2;
+  S.phase = 'face'; dino.skull.visible = false; dino.flesh.visible = true; dino.neck.material = dino.skinMat; sfx.roar(); dino.eyeMat.emissiveIntensity = 2;
   await tween(450, k => dino.flesh.scale.setScalar(Math.max(.01, back(k))));
   await tween(400, k => { dino.fjaw.rotation.z = -.35 * Math.sin(k * Math.PI); });
   await wait(500);
@@ -744,7 +848,7 @@ async function doom() {
   const headW = guard.head.localToWorld(V3(0, .27, 0)), target = dino.g.worldToLocal(headW.clone()), start = dino.headPivot.position.clone();
   const dx = target.x - start.x, dy = target.y - start.y, dz = target.z - start.z, hd = Math.hypot(dx, dz);
   const yaw = Math.atan2(-dz, dx), pitch = Math.atan2(dy, hd);
-  const aim = target.clone().sub(V3(Math.cos(pitch) * Math.cos(yaw), Math.sin(pitch), -Math.cos(pitch) * Math.sin(yaw)).multiplyScalar(.78)); aim.y += .3;
+  const aim = target.clone().sub(V3(Math.cos(pitch) * Math.cos(yaw), Math.sin(pitch), -Math.cos(pitch) * Math.sin(yaw)).multiplyScalar(1.02)); aim.y += .22;
   const r0 = dino.headPivot.rotation.clone();
   S.phase = 'lunge'; setCine('close'); sfx.scream();
   await tween(330, k => {
@@ -755,7 +859,7 @@ async function doom() {
   S.phase = 'bite'; dino.fjaw.rotation.z = -.08; sfx.screamCut(); sfx.crunch(1.2);
   dino.headPivot.attach(guard.head); guard.stump.visible = true; guard.headStump.visible = true;
   // the head hangs out of the front of the jaws
-  guard.head.position.set(1.05, -.78, .05); guard.head.rotation.set(.4, -1.2, 2.3); dino.fjaw.rotation.z = -.3;
+  guard.head.position.set(1.2, -.62, .05); guard.head.rotation.set(.4, -1.2, 2.3); dino.fjaw.rotation.z = -.32;
   S.shake = 1.4; splatter();
   const neckW = guard.neck.getWorldPosition(V3());
   emitBlood(headW, V3(0, 1, 0), 260, 4, 3); emitBlood(neckW, V3(0, 1, 0), 200, 5, 1.6);
@@ -781,6 +885,117 @@ async function doom() {
   await wait(2200);
   sfx.alarmStop(); S.alarm = false; sfx.gameOver();
   S.phase = 'over'; $('gameover').hidden = false;
+}
+
+
+// ---------- the nuns ----------
+const wrap = a => Math.atan2(Math.sin(a), Math.cos(a));
+const nuns = [];
+const nunBlack = mat(0x0a090c, { roughness: .95 }), nunWhite = mat(0xd8d4c8, { roughness: .9 }), nunSkin = mat(0xa9a596, { roughness: .7 }), voidMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+function buildNun() {
+  const g = new THREE.Group(); scene.add(g);
+  const body = new THREE.Group(); g.add(body);
+  addMesh(body, new THREE.CylinderGeometry(.13, .33, .8, 14), nunBlack, 0, .4, 0);
+  addMesh(body, new THREE.SphereGeometry(.17, 12, 8), nunBlack, 0, .8, 0).scale.set(1.25, .6, 1);
+  addMesh(body, new THREE.CylinderGeometry(.16, .2, .06, 14), nunWhite, 0, .86, 0);
+  const hands = addMesh(body, new THREE.BoxGeometry(.07, .15, .05), nunSkin, 0, .64, .19); hands.rotation.x = -.3;
+  for (const s of [-1, 1]) { const f = addMesh(body, new THREE.CylinderGeometry(.006, .004, .12, 4), nunSkin, .025 * s, .76, .2); f.rotation.x = -.3; }
+  const head = new THREE.Group(); head.position.y = .9; body.add(head);
+  addMesh(head, new THREE.SphereGeometry(.16, 14, 10), nunBlack, 0, .14, -.03).scale.set(1.05, 1.15, 1.1);
+  addMesh(head, new THREE.ConeGeometry(.18, .5, 12), nunBlack, 0, -.08, -.1).rotation.x = .25;
+  addMesh(head, new THREE.TorusGeometry(.105, .03, 8, 20), nunWhite, 0, .12, .07);
+  addMesh(head, new THREE.SphereGeometry(.1, 14, 10), nunSkin, 0, .12, .07).scale.set(.9, 1.15, .7);
+  for (const s of [-1, 1]) addMesh(head, new THREE.SphereGeometry(.026, 8, 6), voidMat, .036 * s, .15, .13).scale.set(1, 1.3, .6);
+  const eyeMat = new THREE.MeshBasicMaterial({ color: 0x801010 });
+  for (const s of [-1, 1]) addMesh(head, new THREE.SphereGeometry(.007, 6, 4), eyeMat, .036 * s, .15, .148);
+  const mouth = addMesh(head, new THREE.SphereGeometry(.028, 8, 6), voidMat, 0, .065, .13); mouth.scale.set(.8, 1.7, .5);
+  return { g, body, head, mouth, eyeMat };
+}
+function randomPoint(k) { const c = center(k); for (let i = 0; i < 30; i++) { const x = c.x + (Math.random() - .5) * 15, z = c.z + (Math.random() - .5) * 11; if (!blocked(x, z, .4)) return V3(x, 0, z); } return V3(c.x, 0, c.z); }
+function doorPoint(k, nb) { const c = center(k); for (const side of ['n', 's', 'w', 'e']) if (neighbor(k, side) === nb) { const d = { n: [0, -1], s: [0, 1], w: [-1, 0], e: [1, 0] }[side]; return V3(c.x + d[0] * (W / 2 - 1.3), 0, c.z + d[1] * (D / 2 - 1.3)); } return randomPoint(k); }
+['entre', 'entre', 'konst', 'konst', 'modern', 'natur', 'mineral', 'mineral', 'egypt'].forEach(k => {
+  const n = buildNun(); let p;
+  do { p = randomPoint(k); } while (k === 'entre' && p.distanceTo(guard.p.position) < 7);
+  n.g.position.copy(p); n.g.rotation.y = Math.random() * 6; n.room = k;
+  Object.assign(n, { path: [], wait: Math.random() * 3, speed: .45 + Math.random() * .3, phase: Math.random() * 10, twitch: 0, tilt: 0, cd: 0, scream: 0, pause: 0, whisperT: 0 });
+  nuns.push(n);
+});
+function faceTo(n, target, k) { const want = Math.atan2(target.x - n.g.position.x, target.z - n.g.position.z); n.g.rotation.y += wrap(want - n.g.rotation.y) * Math.min(1, k); }
+function updateNuns(dt, t) {
+  const pp = guard.p.position; let nearest = 99;
+  for (const n of nuns) {
+    const p = n.g.position, d = Math.hypot(p.x - pp.x, p.z - pp.z);
+    n.room = roomAt(p.x, p.z) || n.room; n.cd -= dt;
+    if (n.room === S.room) nearest = Math.min(nearest, d);
+    if (n.scream > 0) { // screaming: shaking, mouth wide open, eyes burning
+      n.scream -= dt; n.head.rotation.x = Math.sin(t * 61) * .3; n.head.rotation.z = Math.sin(t * 47) * .35;
+      n.mouth.scale.set(1.5, 4.2, .6); n.body.position.y = .1 + Math.sin(t * 53) * .04; n.eyeMat.color.setHex(0xff5050); faceTo(n, pp, dt * 20);
+      if (n.scream <= 0) { n.mouth.scale.set(.8, 1.7, .5); n.body.position.y = 0; n.head.rotation.x = 0; }
+      continue;
+    }
+    const sameRoom = n.room === S.room, chase = S.started && !S.busy && sameRoom && d < 6.5;
+    let target = null, speed = 0;
+    if (chase) {
+      n.path = [];
+      if (n.pause > 0) n.pause -= dt; else if (Math.random() < dt * .4) n.pause = .4 + Math.random() * 1.3; // stop and stare, then come again
+      if (n.pause <= 0) { target = pp; speed = 1.1; }
+    } else if (S.started && !S.dead && !S.won) {
+      if (!n.path.length) {
+        if (Math.random() < .35) { const opts = LINKS.filter(l => l.includes(n.room)).map(l => l[0] === n.room ? l[1] : l[0]).filter(r => r !== 'skatt'); const nb = opts[Math.floor(Math.random() * opts.length)]; n.path = [doorPoint(n.room, nb), doorPoint(nb, n.room), randomPoint(nb)]; }
+        else n.path = [randomPoint(n.room)];
+        n.wait = Math.random() * 3;
+      }
+      if (n.wait > 0) n.wait -= dt; else { target = n.path[0]; speed = n.speed; if (Math.hypot(target.x - p.x, target.z - p.z) < .3) n.path.shift(); }
+    }
+    if (target && speed) {
+      const dx = target.x - p.x, dz = target.z - p.z, l = Math.hypot(dx, dz);
+      if (l > .05) { const st = Math.min(l, speed * dt), nx = p.x + dx / l * st, nz = p.z + dz / l * st;
+        if (chase) { // steer around furniture: try straight ahead, then wider and wider angles
+          const stuck = blocked(p.x, p.z, .25), base = Math.atan2(dx, dz);
+          for (const off of [0, .6, -.6, 1.2, -1.2, 1.8, -1.8]) { const ang = base + off, tx = p.x + Math.sin(ang) * st, tz = p.z + Math.cos(ang) * st; if (stuck || !blocked(tx, tz, .25)) { p.x = tx; p.z = tz; break; } }
+        } else { p.x = nx; p.z = nz; }
+        faceTo(n, target, dt * 4); }
+    }
+    // gliding, swaying, twitching heads that turn toward you
+    n.body.rotation.z = Math.sin(t * 1.3 + n.phase) * .05; n.g.position.y = speed ? Math.abs(Math.sin(t * 3 + n.phase)) * .03 : 0;
+    n.twitch -= dt; if (n.twitch < 0) { n.twitch = 1.2 + Math.random() * 4; n.tilt = (Math.random() - .5) * 1.4; }
+    const look = (sameRoom && d < 9) || S.dead ? wrap(Math.atan2(pp.x - p.x, pp.z - p.z) - n.g.rotation.y) : 0;
+    n.head.rotation.y += (Math.max(-1.6, Math.min(1.6, look)) - n.head.rotation.y) * Math.min(1, dt * 5);
+    n.head.rotation.z += (n.tilt - n.head.rotation.z) * Math.min(1, dt * 16);
+    n.eyeMat.color.setHex(sameRoom && d < 5 ? 0xff1818 : 0x701010);
+    if (sameRoom && d < 4.5 && !S.dead) { n.whisperT -= dt; if (n.whisperT < 0) { n.whisperT = 1.5 + Math.random() * 3; sfx.whisper(1 - d / 5); } }
+    if (S.started && !S.busy && d < .72 && n.cd <= 0) nunScream(n);
+  }
+  S.nearestNun = nearest;
+}
+function nunScream(n) {
+  n.scream = 1.3; n.cd = 3.5; sfx.nunScream(); S.shake = 1.3;
+  const el = $('scare'); el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
+  const pp = guard.p.position, dx = pp.x - n.g.position.x, dz = pp.z - n.g.position.z, l = Math.hypot(dx, dz) || 1;
+  for (let i = 0; i < 10; i++) { const nx = pp.x + dx / l * .14, nz = pp.z + dz / l * .14; if (!blocked(nx, pp.z)) pp.x = nx; if (!blocked(pp.x, nz)) pp.z = nz; }
+}
+// When the lights come back, one of them is standing right behind you
+function sneakNun() {
+  const pp = guard.p.position, bx = pp.x + Math.sin(S.yaw) * 2.6, bz = pp.z + Math.cos(S.yaw) * 2.6;
+  if (blocked(bx, bz, .4) || roomAt(bx, bz) !== S.room) return;
+  let best = null, bd = 1e9; for (const n of nuns) { const d = n.g.position.distanceTo(pp); if (n.scream <= 0 && d < bd && d > 4) { bd = d; best = n; } }
+  if (!best) return; best.g.position.set(bx, 0, bz); best.path = []; best.pause = 1.2; faceTo(best, pp, 1); best.cd = 0;
+}
+const grain = $('grain'), grainG = grain.getContext('2d'), grainImg = grainG.createImageData(grain.width, grain.height);
+function updateGrain() { const d = grainImg.data; for (let i = 0; i < d.length; i += 4) { const v = Math.random() * 255 | 0; d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 255; } grainG.putImageData(grainImg, 0, 0); }
+let blackT = 25 + Math.random() * 15, beatT = 0, farT = 35, grainT = 0;
+function updateScares(dt) {
+  if (!S.started || S.dead || S.won) return;
+  // the lights in your room go out for a few seconds
+  blackT -= dt;
+  if (blackT < 0 && !S.blackout && !S.busy) { S.blackout = { room: S.room, t: 3 + Math.random() * 2.5 }; blackT = 35 + Math.random() * 35; sfx.lightsOut(); subtitle('…', 1500); }
+  if (S.blackout) { S.blackout.t -= dt; if (S.blackout.t <= 0) { S.blackout = null; sneakNun(); sfx.sting(); } }
+  // the flashlight stutters when something is close, or in the dark
+  const near = S.nearestNun || 99;
+  guard.spot.intensity = (near < 3 || S.blackout) && Math.random() < .12 ? .15 : 2.2;
+  // heartbeat speeds up as a nun gets closer
+  if (near < 6) { beatT -= dt; if (beatT < 0) { beatT = .35 + (near / 6) * .75; sfx.heartbeat(1 - near / 7); } }
+  farT -= dt; if (farT < 0) { farT = 40 + Math.random() * 40; sfx.distantScream(); }
 }
 
 // ---------- main loop ----------
@@ -810,6 +1025,8 @@ function tick() {
   // lights
   for (const rk in ROOMS) {
     const r = ROOMS[rk];
+    if (S.blackout && S.blackout.room === rk) { r.lamp.intensity = 0; continue; }
+    if (!r.flicker && r.lamp.intensity !== r.li) r.lamp.intensity = r.li;
     if (r.flicker) { r.flickerT -= dt; if (r.flickerT < 0) { r.flickerT = Math.random() < .5 ? .05 + Math.random() * .1 : 1 + Math.random() * 4; r.lamp.intensity = r.flickerT < .2 ? r.li * Math.random() * .2 : r.li; } }
   }
   alarmLight.intensity = S.alarm ? 3.5 * Math.max(0, Math.sin(t * Math.PI * 2 * 1.5)) : 0;
@@ -830,6 +1047,8 @@ function tick() {
   if (S.drip > 0) { S.drip -= dt; if (Math.random() < .6) emitBlood(dino.mouth.getWorldPosition(V3()), V3(0, -1, 0), 1 + (Math.random() * 2 | 0), .4, .5); }
   if (S.pool) { S.pool = Math.min(1.6, S.pool + dt * .3); pool.scale.setScalar(S.pool); }
   updateBlood(dt);
+  updateNuns(dt, t); updateScares(dt);
+  grainT -= dt; if (grainT < 0) { grainT = .07; updateGrain(); }
   for (const f of anims) f(dt, t);
   tvT -= dt; if (tvT < 0) { tvT = .06; updateTv(t); }
   // ambience
@@ -849,5 +1068,5 @@ tick();
 addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
 
 // small hooks for automated testing
-window.__aurora = { S, guard, dino, teleport(k, x, z, yaw = 0) { const c = center(k); guard.p.position.set(c.x + x, 0, c.z + z); S.yaw = yaw; }, doom, stars, openVault };
+window.__aurora = { S, guard, dino, nuns, faceTex, cam(pos, look) { S.cine = true; cinePos.set(...pos); cineLook.set(...look); lookNow.set(...look); camera.position.set(...pos); }, teleport(k, x, z, yaw = 0) { const c = center(k); guard.p.position.set(c.x + x, 0, c.z + z); S.yaw = yaw; }, doom, stars, openVault };
 })();

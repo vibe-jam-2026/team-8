@@ -31,6 +31,11 @@ kbd{display:inline-block;background:var(--gold);color:#2a2112;border-radius:5px;
 #plaque .meta{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#7b6f5c;margin-bottom:8px}
 #plaque p{margin:0 0 6px;font-size:15px}
 #plaqueClose{float:right;background:transparent;border:1px solid #cdbf9f;color:var(--paperInk);font-size:13px;padding:3px 10px;margin:-4px -6px 0 8px}
+#dark{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 40%,rgba(0,0,0,.7) 100%)}
+#grain{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;opacity:.07;mix-blend-mode:screen;image-rendering:pixelated}
+#scare{position:fixed;inset:0;pointer-events:none;opacity:0;background:radial-gradient(circle,rgba(255,255,255,.9),rgba(180,0,0,.75) 70%)}
+#scare.on{animation:scare .7s ease-out}
+@keyframes scare{0%{opacity:.85}100%{opacity:0}}
 /* blood on the screen */
 #vignette{position:fixed;inset:0;pointer-events:none;opacity:0;background:radial-gradient(ellipse at center,transparent 45%,rgba(120,0,0,.75) 100%);transition:opacity .2s}
 #vignette.on{opacity:1;animation:pulse 1.1s ease-in-out infinite}
@@ -70,6 +75,9 @@ kbd{display:inline-block;background:var(--gold);color:#2a2112;border-radius:5px;
     <button id="soundBtn" type="button" aria-pressed="true">Ljud på</button>
   </div>
 </div>
+<div id="dark"></div>
+<canvas id="grain" width="160" height="90"></canvas>
+<div id="scare"></div>
 <div id="vignette"></div>
 <div id="splat"></div>
 <div id="sub"></div>
@@ -86,12 +94,13 @@ kbd{display:inline-block;background:var(--gold);color:#2a2112;border-radius:5px;
   <div class="card">
     <div class="kicker">Nattskift</div>
     <h1>Museum Aurora</h1>
-    <p>Du är nattvakt. Lamporna fladdrar och något i Naturhistoria verkar följa dig med blicken. Någon har gömt <b>sex guldstjärnor</b> i salarna, och bara när alla är hittade öppnas valvet till skattkammaren.</p>
+    <p>Du är nattvakt. Lamporna fladdrar, något i Naturhistoria följer dig med blicken, och små nunnor vandrar runt i salarna. Någon har gömt <b>sex guldstjärnor</b> i salarna, och bara när alla är hittade öppnas valvet till skattkammaren.</p>
     <ul>
       <li><b>W/S</b> eller <b>↑/↓</b> för att gå, <b>A/D</b> eller <b>←/→</b> för att svänga. <b>Shift</b> för att springa.</li>
       <li>Dra med musen för att titta runt.</li>
       <li><b>E</b> för att läsa skyltar och använda saker.</li>
       <li>På mobil: dra på vänster halva för att gå, höger halva för att titta.</li>
+      <li><b>Akta dig för nunnorna.</b> Gå inte in i dem.</li>
     </ul>
     <button class="primary" id="startBtn" type="button">Börja ronden</button>
   </div>
