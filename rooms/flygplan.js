@@ -1,7 +1,64 @@
-// Procedurella flygplansmodeller byggda av enkla former.
+// Flyghallen: procedurella flygplansmodeller byggda av enkla former (Måns rum i Museum Aurora).
 // Koordinater: nosen pekar mot +Z, Y uppåt, gruppens origo = marken under planet.
-import * as THREE from 'three';
-import { makeCamoTexture, makeRoundelTexture } from './textures.js';
+import * as THREE from '../vendor/three.module.min.js';
+
+function rng(seed) {
+  let s = seed % 2147483647;
+  if (s <= 0) s += 2147483646;
+  return () => (s = (s * 16807) % 2147483647) / 2147483647;
+}
+function makeCanvas(w, h) {
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  return [c, c.getContext('2d')];
+}
+function toTexture(canvas, { srgb = true, repeat = [1, 1], wrap = true } = {}) {
+  const t = new THREE.CanvasTexture(canvas);
+  if (srgb) t.colorSpace = THREE.SRGBColorSpace;
+  if (wrap) t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(repeat[0], repeat[1]);
+  t.anisotropy = 8;
+  return t;
+}
+
+/** Splinter camouflage pattern. */
+function makeCamoTexture(repeat = 1) {
+  const S = 512;
+  const [c, g] = makeCanvas(S, S);
+  const r = rng(39);
+  const colors = ['#5d6b45', '#3f4a2e', '#7c6b4a', '#2a2c25', '#8a8f72'];
+  g.fillStyle = colors[0];
+  g.fillRect(0, 0, S, S);
+  for (let k = 0; k < 70; k++) {
+    g.fillStyle = colors[1 + Math.floor(r() * (colors.length - 1))];
+    const cx = r() * S, cy = r() * S, n = 4 + Math.floor(r() * 3), rad = 30 + r() * 90;
+    const p = new Path2D();
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2 + r() * 0.8;
+      const rr = rad * (0.5 + r() * 0.7);
+      const px = cx + Math.cos(a) * rr, py = cy + Math.sin(a) * rr;
+      i ? p.lineTo(px, py) : p.moveTo(px, py);
+    }
+    p.closePath();
+    // Rita varje fläck på alla sidor så att mönstret går att upprepa sömlöst
+    for (const dx of [-S, 0, S]) for (const dy of [-S, 0, S]) {
+      g.save(); g.translate(dx, dy); g.fill(p); g.restore();
+    }
+  }
+  return toTexture(c, { repeat: [repeat, repeat] });
+}
+
+/** Fictional wing insignia: concentric rings. */
+function makeRoundelTexture() {
+  const S = 256;
+  const [c, g] = makeCanvas(S, S);
+  [[S / 2 - 2, '#f2f2f2'], [S / 2 - 18, '#20324f'], [S / 2 - 52, '#f2f2f2'], [S / 2 - 70, '#c8a23a']].forEach(([r, col]) => {
+    g.fillStyle = col;
+    g.beginPath(); g.arc(S / 2, S / 2, r, 0, Math.PI * 2); g.fill();
+  });
+  return toTexture(c, { wrap: false });
+}
+
 
 let roundelTex = null;
 
@@ -128,7 +185,7 @@ export function buildJet(spec) {
   fin.position.y = R * 0.55;
   body.add(fin);
 
-  // Nationalitetsmärkning på vingarna
+  // Generic (fictional) insignia on the wings
   roundelTex ??= makeRoundelTexture();
   const roundelMat = new THREE.MeshStandardMaterial({
     map: roundelTex, transparent: true, roughness: 0.5, polygonOffset: true, polygonOffsetFactor: -2,
@@ -142,7 +199,7 @@ export function buildJet(spec) {
   }
 
   // Motormunstycke
-  const metal = new THREE.MeshStandardMaterial({ color: 0x3a3a3c, metalness: 1, roughness: 0.32 });
+  const metal = new THREE.MeshStandardMaterial({ color: 0x4a4a4e, metalness: 0.5, roughness: 0.4 });
   const nozzle = new THREE.Mesh(new THREE.CylinderGeometry(R * 0.6, R * 0.52, 0.9, 32, 1, true), metal);
   nozzle.material.side = THREE.DoubleSide;
   nozzle.rotation.x = Math.PI / 2;
@@ -194,11 +251,11 @@ function paint(color, metalness, roughness, extra = {}) {
   return new THREE.MeshStandardMaterial({ color, metalness, roughness, envMapIntensity: 1.2, ...extra });
 }
 
-/** JAS 39 Gripen — deltavinge med canards. */
-export function buildGripen() {
+/** Delta-wing fighter with canards. */
+export function buildDeltaFighter() {
   const grey = paint(0x8b929b, 0.35, 0.42);
   return buildJet({
-    name: 'JAS 39 Gripen', length: 14.1, radius: 0.72, height: 1.55, material: grey, intakes: true,
+    name: 'Multirole Delta Fighter', length: 14.1, radius: 0.72, height: 1.55, material: grey, intakes: true,
     wing: [[0.5, 0.2], [4.2, -3.9], [4.2, -4.6], [0.5, -6.6]],
     canard: [[0.55, 3.7], [2.6, 2.35], [2.6, 1.85], [0.55, 1.75]],
     canardY: 0.12,
@@ -208,11 +265,11 @@ export function buildGripen() {
   });
 }
 
-/** J 35 Draken — dubbeldeltavinge, naturlig metall. */
-export function buildDraken() {
-  const alu = paint(0xb9bec4, 0.85, 0.28);
+/** Double-delta interceptor in bare metal. */
+export function buildDoubleDeltaJet() {
+  const alu = paint(0xc3c8ce, 0.45, 0.3);
   return buildJet({
-    name: 'J 35 Draken', length: 15.2, radius: 0.8, height: 1.5, material: alu, intakes: false,
+    name: 'Double-Delta Interceptor', length: 15.2, radius: 0.8, height: 1.12, material: alu, intakes: false,
     wing: [[0.5, 3.4], [1.7, -1.0], [4.7, -5.0], [4.7, -5.8], [0.5, -6.9]],
     fin: [[-3.4, 0], [-6.8, 3.3], [-7.6, 3.3], [-7.5, 0]],
     roundel: [3.3, -4.6],
@@ -220,14 +277,14 @@ export function buildDraken() {
   });
 }
 
-/** AJ 37 Viggen — stora canardvingar och fjällmönster. */
-export function buildViggen() {
+/** Attack jet with large canards and splinter camouflage. */
+export function buildCanardJet() {
   const camo = makeCamoTexture(1);
   const camoWing = makeCamoTexture(0.18);
   const body = paint(0xffffff, 0.15, 0.6, { map: camo });
   const wing = paint(0xffffff, 0.15, 0.6, { map: camoWing });
   return buildJet({
-    name: 'AJ 37 Viggen', length: 16.3, radius: 0.85, height: 1.6, material: body, wingMaterial: wing, intakes: true,
+    name: 'Canard Attack Jet', length: 16.3, radius: 0.85, height: 1.18, material: body, wingMaterial: wing, intakes: true,
     wing: [[0.6, -1.2], [3.1, -4.0], [5.3, -5.4], [5.3, -6.2], [0.6, -7.4]],
     canard: [[0.75, 3.6], [3.4, 1.2], [3.4, 0.5], [0.75, 0.4]],
     canardY: 0.45,
