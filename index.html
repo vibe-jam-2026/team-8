@@ -1,45 +1,570 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Team 8 · Claude Code exercise</title><style>
-:root { --y: #FFB838; --ink: #34322E; --mut: #6b675f; --line: #e6e2da; }
-* { box-sizing: border-box; }
-body { margin: 0; font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); background: #fff; }
-header { background: var(--y); padding: 32px 0 24px; }
-.wrap { max-width: 980px; margin: 0 auto; padding: 0 24px; }
-header .k { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; opacity: .7; }
-header h1 { margin: 6px 0 14px; font-size: 40px; font-weight: 500; }
-header .where { display: flex; flex-wrap: wrap; gap: 8px 24px; font-size: 15px; }
-header a { color: inherit; font-weight: 600; }
-main { max-width: 980px; margin: 0 auto; padding: 8px 24px 64px; }
-h2.part { font-size: 28px; font-weight: 500; margin: 40px 0 8px; padding-top: 24px; border-top: 4px solid var(--y); }
-h2 { font-size: 19px; margin: 28px 0 8px; }
-h3 { font-size: 16px; margin: 0 0 6px; }
-.task { font-size: 20px; }
-.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 40px; }
-@media (max-width: 760px) { .cols { grid-template-columns: 1fr; } header h1 { font-size: 30px; } }
-ul, ol { padding-left: 22px; } li { margin: 4px 0; }
-table { border-collapse: collapse; width: 100%; font-size: 15px; }
-td, th { text-align: left; padding: 7px 10px 7px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
-td:first-child { white-space: nowrap; }
-.demo { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-.demo div { background: #f6f4ef; border-radius: 8px; padding: 14px 16px; }
-.demo b { display: block; font-size: 22px; }
-.card { background: #f6f4ef; border-radius: 8px; padding: 14px 16px; }
-footer { color: var(--mut); font-size: 14px; margin-top: 48px; }</style></head><body>
-<header><div class="wrap"><div class="k">Claude Code exercise · Saab · 9–10 November 2026</div><h1>Team 8</h1>
-<div class="where"><span>Repo: <a href="https://github.com/vibe-jam-2026/team-8">github.com/vibe-jam-2026/team-8</a></span><span>Address: <a href="https://vibe-jam-2026.github.io/team-8/">vibe-jam-2026.github.io/team-8</a></span><span>Build at: <a href="https://claude.ai/code">claude.ai/code</a></span></div></div></header>
-<main>
-  <h2 class="part">Your repo and how to publish</h2>
-  <p>Your repo is <a href="https://github.com/vibe-jam-2026/team-8"><b>github.com/vibe-jam-2026/team-8</b></a> and what you build is published at <a href="https://vibe-jam-2026.github.io/team-8/"><b>vibe-jam-2026.github.io/team-8</b></a>. You are reading this page there now: what you build replaces it. These instructions stay at <a href="instructions.html">vibe-jam-2026.github.io/team-8/instructions.html</a>.</p>
-  
-  <h2>How to publish</h2>
-  <ol>
-    <li>Open <b>claude.ai/code</b> in the browser and log in with <b>team8@rawe.se</b>. Adrian gives you the login code in the room. Accept the invitation to <b>VibeJam2026</b> when it shows.</li>
-    <li>One person in the team clicks <b>Sign in with GitHub</b> and approves with their own GitHub account. That person must have accepted the invitation to the team's repo, or Claude cannot push. Then pick the repo <b>vibe-jam-2026/team-8</b>.</li>
-    <li>The team shares one Claude login. Agree on who steers and when. Do not change its password or settings.</li>
-    <li>Your page starts from <b>index.html</b> at the top of the repo. Everything the browser needs must be in the repo as static files: HTML, JavaScript, CSS, images and sound.</li>
-    <li>Claude pushes its work to a branch of its own. Publish by asking it to open a pull request, then click <b>Merge</b> on github.com, so the change lands in <b>main</b>.</li>
-    <li>GitHub Pages publishes every change to main by itself. About a minute later the new version is live at your address.</li>
-    <li>Built with a tool such as Vite? Put the finished files at the top of the repo or in <b>docs/</b>. docs/ is picked up by itself when there is no index.html at the top. Use relative paths, because your site lives under /team-8/.</li>
-  </ol>
-  
-<footer>Questions during the exercise: ask Adrian.</footer></main></body></html>
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rör inte knappen</title>
+<style>
+  :root {
+    --bg: #0e1217; --panel: #161c23; --line: #26303a; --ink: #e8edf2; --mut: #8a97a4;
+    --y: #FFB838; --y-d: #b97c10; --ok: #3ccf8e; --warn: #ff9f43; --red: #e5322d;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font: 16px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-user-select: none; user-select: none; touch-action: manipulation;
+  }
+  button { font: inherit; }
+
+  /* ---------- HUD ---------- */
+  #hud {
+    position: fixed; top: 0; left: 0; right: 0; height: 56px; z-index: 5;
+    display: flex; align-items: center; gap: 22px; padding: 0 16px;
+    background: var(--panel); border-bottom: 1px solid var(--line);
+    font-variant-numeric: tabular-nums;
+  }
+  #hud .l { display: block; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--mut); }
+  #hud .v { font-size: 18px; font-weight: 650; }
+  #hud .sp { flex: 1; }
+  #lives { color: var(--red); letter-spacing: 3px; }
+  #mute { background: none; border: 1px solid var(--line); color: var(--ink); border-radius: 6px; padding: 4px 9px; cursor: pointer; }
+  @media (max-width: 520px) { #hud { gap: 14px; } #hud .v { font-size: 16px; } .hide-s { display: none; } }
+
+  /* ---------- Arena ---------- */
+  #arena {
+    position: fixed; top: 56px; left: 0; right: 0; bottom: 0; overflow: hidden;
+    background-image:
+      linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  .task {
+    position: absolute; z-index: 2; min-width: 150px; padding: 11px 16px 16px;
+    border: 0; border-radius: 8px; cursor: pointer;
+    background: var(--y); color: #2a2214; font-weight: 650; font-size: 15px; white-space: nowrap;
+    box-shadow: 0 4px 0 var(--y-d), 0 10px 22px rgba(0,0,0,.45);
+    transform: translate(-50%, -50%);
+    animation: pop .18s ease-out;
+  }
+  .task:active { transform: translate(-50%, calc(-50% + 3px)); box-shadow: 0 1px 0 var(--y-d); }
+  .task .bar { position: absolute; left: 12px; right: 12px; bottom: 7px; height: 3px; border-radius: 2px; background: rgba(0,0,0,.15); overflow: hidden; }
+  .task .bar i { display: block; height: 100%; background: #2a2214; transform-origin: left; }
+  .task.urgent { animation: jitter .25s infinite; }
+  @keyframes pop { from { transform: translate(-50%,-50%) scale(.5); opacity: 0; } to { transform: translate(-50%,-50%) scale(1); opacity: 1; } }
+  @keyframes jitter { 0%,100% { transform: translate(-50%,-50%) rotate(0); } 25% { transform: translate(-50%,-50%) rotate(-2deg); } 75% { transform: translate(-50%,-50%) rotate(2deg); } }
+
+  .red {
+    width: 120px; height: 120px; border-radius: 50%; border: 0; cursor: pointer;
+    background: radial-gradient(circle at 35% 28%, #ff9a90 0, #e5322d 38%, #8f1411 100%);
+    box-shadow: 0 7px 0 #5e0d0b, 0 0 0 10px #2a3038, 0 0 0 13px #3d4752, 0 16px 34px rgba(0,0,0,.6);
+    color: #fff; font-weight: 800; font-size: 13px; letter-spacing: .06em; line-height: 1.1;
+    text-shadow: 0 1px 2px rgba(0,0,0,.4);
+    animation: throb 1.6s ease-in-out infinite;
+  }
+  .red:active { box-shadow: 0 2px 0 #5e0d0b, 0 0 0 10px #2a3038, 0 0 0 13px #3d4752; }
+  @keyframes throb { 50% { filter: brightness(1.18) drop-shadow(0 0 16px rgba(229,50,45,.65)); } }
+  #big { position: absolute; z-index: 1; transform: translate(-50%, -50%); }
+  @media (max-width: 520px) { .red { width: 96px; height: 96px; font-size: 11px; } }
+
+  #bubble {
+    position: absolute; z-index: 3; pointer-events: none; max-width: 220px;
+    background: #fff; color: #1b1f24; font-weight: 600; font-size: 14px;
+    padding: 8px 12px; border-radius: 10px; transform: translate(-50%, -100%);
+    opacity: 0; transition: opacity .2s;
+  }
+  #bubble::after { content: ""; position: absolute; left: 50%; bottom: -7px; margin-left: -7px; border: 7px solid transparent; border-bottom: 0; border-top-color: #fff; }
+  #bubble.on { opacity: 1; }
+
+  .float {
+    position: absolute; z-index: 4; pointer-events: none; font-weight: 750; font-size: 18px;
+    transform: translate(-50%, -50%); animation: rise 1s ease-out forwards; white-space: nowrap;
+  }
+  @keyframes rise { to { transform: translate(-50%, -140%); opacity: 0; } }
+
+  #banner {
+    position: absolute; z-index: 4; left: 50%; top: 22px; transform: translateX(-50%);
+    background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--y);
+    padding: 10px 16px; border-radius: 8px; font-weight: 600; max-width: calc(100% - 32px);
+    opacity: 0; transition: opacity .3s; pointer-events: none; text-align: center;
+  }
+  #banner.on { opacity: 1; }
+
+  /* ---------- Overlays ---------- */
+  .overlay {
+    position: fixed; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center;
+    padding: 16px; background: rgba(14,18,23,.88);
+  }
+  .overlay[hidden] { display: none; }
+  .card {
+    width: 100%; max-width: 540px; max-height: 100%; overflow: auto;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 28px;
+  }
+  .card .k { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--mut); }
+  .card h1 { margin: 6px 0 12px; font-size: clamp(30px, 7vw, 44px); line-height: 1.05; }
+  .card p { margin: 0 0 12px; color: #c9d2db; }
+  .card ul { margin: 0 0 16px; padding-left: 20px; color: #c9d2db; } .card li { margin: 4px 0; }
+  .card .row { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; margin-top: 18px; }
+  .card .red { width: 96px; height: 96px; font-size: 11px; flex: none; }
+  .go {
+    border: 0; border-radius: 8px; padding: 13px 22px; cursor: pointer;
+    background: var(--ok); color: #08261a; font-weight: 750; font-size: 16px;
+    box-shadow: 0 4px 0 #1f8a5b;
+  }
+  .go:active { transform: translateY(3px); box-shadow: 0 1px 0 #1f8a5b; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 16px 0; }
+  .stats div { background: var(--bg); border-radius: 8px; padding: 10px 12px; }
+  .stats b { display: block; font-size: 22px; font-variant-numeric: tabular-nums; }
+  .stats span { font-size: 12px; color: var(--mut); }
+  .conseq { background: #2a1214; border-left: 4px solid var(--red); padding: 12px 14px; border-radius: 6px; margin: 12px 0; color: #ffd9d6; }
+  .small { font-size: 13px; color: var(--mut) !important; }
+  .card a { color: var(--y); }
+
+  /* ---------- Katastrofen ---------- */
+  #boom { position: fixed; inset: 0; z-index: 8; display: flex; align-items: center; justify-content: center; pointer-events: none; text-align: center; padding: 16px; }
+  #boom b { font-size: clamp(34px, 9vw, 96px); font-weight: 900; text-shadow: 0 4px 30px rgba(0,0,0,.6); }
+  body.alarm { animation: alarm .5s steps(1) infinite; }
+  body.alarm #arena { background-color: transparent; }
+  @keyframes alarm { 0% { background: #5a0b0b; } 50% { background: #1a0505; } }
+  body.shake #arena, body.shake #hud { animation: shake .12s infinite; }
+  @keyframes shake { 0% { transform: translate(0,0); } 25% { transform: translate(-6px,3px); } 50% { transform: translate(5px,-4px); } 75% { transform: translate(-3px,-2px); } }
+  body.dark { background: #000; animation: none; }
+  body.dark #arena { opacity: 0; transition: opacity .8s; }
+  .fall { animation: fall 1.5s cubic-bezier(.45,0,.9,.5) forwards !important; }
+  @keyframes fall { to { transform: translate(var(--dx), 130vh) rotate(var(--r)); } }
+  #flash { position: fixed; inset: 0; z-index: 7; pointer-events: none; opacity: 0; }
+  #flash.hit { animation: hit .35s ease-out; }
+  @keyframes hit { from { opacity: .45; } to { opacity: 0; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .red, .task.urgent { animation: none; }
+    body.alarm { animation: none; background: #3a0909; }
+    body.shake #arena, body.shake #hud { animation: none; }
+  }
+</style>
+</head>
+<body>
+
+<div id="hud">
+  <div><span class="l">Poäng</span><span class="v" id="score">0</span></div>
+  <div><span class="l">Tid</span><span class="v" id="time">0,0</span></div>
+  <div><span class="l">Nivå</span><span class="v" id="level">1</span></div>
+  <div><span class="l">Liv</span><span class="v" id="lives">♥♥♥</span></div>
+  <div class="sp"></div>
+  <button id="mute" title="Ljud av/på">🔊</button>
+</div>
+
+<div id="arena">
+  <button id="big" class="red">TRYCK<br>INTE</button>
+  <div id="bubble"></div>
+  <div id="banner"></div>
+</div>
+
+<div id="flash"></div>
+<div id="boom"><b id="boomtxt"></b></div>
+
+<div class="overlay" id="ov">
+  <div class="card" id="card"></div>
+</div>
+
+<script>
+(() => {
+  const $ = s => document.querySelector(s);
+  const arena = $('#arena'), big = $('#big'), bubble = $('#bubble'), banner = $('#banner');
+  const ov = $('#ov'), card = $('#card'), flash = $('#flash'), boomtxt = $('#boomtxt');
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+
+  // ---------- Lagring (per webbläsare, får gärna misslyckas) ----------
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem('knappen.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem('knappen.' + k, JSON.stringify(v)); } catch (e) {} }
+  };
+
+  // ---------- Ljud ----------
+  let ac = null, muted = store.get('muted', false);
+  $('#mute').textContent = muted ? '🔇' : '🔊';
+  $('#mute').onclick = () => { muted = !muted; store.set('muted', muted); $('#mute').textContent = muted ? '🔇' : '🔊'; };
+  function tone(f, d, type = 'sine', vol = .08, slide) {
+    if (muted) return;
+    try {
+      ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+      const t = ac.currentTime, o = ac.createOscillator(), g = ac.createGain();
+      o.type = type; o.frequency.setValueAtTime(f, t);
+      if (slide) o.frequency.exponentialRampToValueAtTime(slide, t + d);
+      g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d);
+      o.connect(g).connect(ac.destination); o.start(t); o.stop(t + d);
+    } catch (e) {}
+  }
+  const sfx = {
+    ok() { tone(660, .09, 'square', .05); setTimeout(() => tone(990, .12, 'square', .05), 70); },
+    miss() { tone(140, .35, 'sawtooth', .09, 70); },
+    dodge() { tone(520, .1, 'triangle', .07); setTimeout(() => tone(780, .1, 'triangle', .07), 90); setTimeout(() => tone(1040, .16, 'triangle', .07), 180); },
+    siren(n = 8) { for (let i = 0; i < n; i++) setTimeout(() => tone(i % 2 ? 1100 : 650, .32, 'sawtooth', .06, i % 2 ? 650 : 1100), i * 320); },
+    boom() { tone(90, 1.4, 'sawtooth', .15, 30); tone(60, 1.6, 'square', .1, 25); },
+    tick() { tone(880, .08, 'square', .06); }
+  };
+
+  // ---------- Innehåll ----------
+  const LABELS = [
+    'Kyl reaktorn', 'Släpp ut tryck', 'Starta fläkten', 'Kvittera larmet', 'Byt säkring',
+    'Mata katten', 'Vattna kaktusen', 'Spara filen', 'Stäng fönstret', 'Kalibrera radarn',
+    'Smörj kugghjulet', 'Svara i telefonen', 'Starta om routern', 'Töm kaffefiltret',
+    'Justera antennen', 'Tänd lampan', 'Kontrollera trycket', 'Ladda batteriet', 'Låsa dörren',
+    'Rapportera läget', 'Släck brasan', 'Vrid på ventilen', 'Signera loggboken', 'Mäta strålningen'
+  ];
+  const TEMPT = [
+    'Tryck på mig.', 'Bara lite?', 'Ingen kommer att märka.', 'Pssst.', 'Jag har kakor.',
+    'Du har varit så duktig. Du förtjänar mig.', 'Jag är egentligen grön. Du är färgblind.',
+    'Vad tror du händer?', 'Det är en bonusknapp.', 'Klick. Klick. Klick.', 'Jag är så ensam här nere.',
+    'De andra knapparna pratar skit om dig.', 'Ett litet tryck. För vetenskapen.',
+    'Jag lovar att ingenting händer.', 'Du vet att du vill.'
+  ];
+  const NEAR = ['Ja? JA?!', 'Närmare…', 'Gör det.', 'Du tittar på mig.', 'Nu!'];
+  const BIG_LABELS = ['TRYCK<br>INTE', 'TRYCK<br>INTE?', 'TRYCK', '+1000<br>POÄNG', 'PAUS', 'OK', 'NÄSTA<br>NIVÅ', 'HJÄLP'];
+  const LEVEL_MSG = {
+    2: 'Nivå 2: Knappen har börjat röra på sig.',
+    3: 'Nivå 3: Knappen har lärt sig klä ut sig. Den kan dock inte stava.',
+    4: 'Nivå 4: Knappen gillar dig. Den följer efter.',
+    5: 'Nivå 5: Knappen ljuger om vad den är.',
+    6: 'Nivå 6: Allt går fortare.'
+  };
+  const CONSEQ = [
+    'Alla mikrovågsugnar i Östergötland piper nu samtidigt. För alltid.',
+    'Kaffemaskinen brygger hädanefter bara rooibos-te.',
+    'Samtliga parkeringsplatser har vridits 90 grader.',
+    '4 000 gummiankor är på väg till din adress. Mot postförskott.',
+    'Fredagsfikat är inställt. På obestämd tid.',
+    'Alla datorer i byggnaden har bytt språk till latin.',
+    'Månen har flyttats två meter åt vänster. Ingen vet varför.',
+    'Din chef har fått ett mejl med rubriken ”Jag tryckte på knappen”.',
+    'Hissen stannar nu på varje våning. Även de som inte finns.',
+    'Varje gång någon nyser i huset spelas nu en fanfar.',
+    'Alla möten i morgon har förlängts med 45 minuter.',
+    'Katten har blivit chef för kontrollrummet. Den är strängare än du.',
+    'Wifi-lösenordet har bytts till ”tryckinte”. Ingen kan skriva det rätt.',
+    'Alla tangentbord har fått sina Å, Ä och Ö borttagna.',
+    'En ny knapp har installerats. Den står i ditt kök.'
+  ];
+  const AGAIN = ['Igen?', 'Du är obotlig.', 'Den gör samma sak varje gång.', 'Okej, en gång till då.', 'Knappen är nöjd med dig.', 'Det här är ett mönster.'];
+
+  // Byt plats på två intilliggande bokstäver: knappens enda svaghet
+  function typo(s) {
+    const L = /[a-zåäö]/;
+    const idx = [];
+    for (let i = 1; i < s.length - 1; i++) {
+      if (L.test(s[i]) && L.test(s[i + 1]) && s[i] !== s[i + 1] && s[i - 1] !== ' ') idx.push(i);
+    }
+    if (!idx.length) return s + 'e';
+    const i = pick(idx);
+    return s.slice(0, i) + s[i + 1] + s[i] + s.slice(i + 2);
+  }
+
+  // ---------- Spelstatus ----------
+  let state = 'start'; // start | play | boom | end
+  let score, lives, level, done, elapsed, spawnIn, tasks, last;
+  let bx, by, tx, ty, mode, modeT, bubbleT, bubbleHide, nearT, labelT;
+  let px = -999, py = -999;
+
+  const W = () => arena.clientWidth, H = () => arena.clientHeight;
+  const bigR = () => big.offsetWidth / 2;
+
+  arena.addEventListener('pointermove', e => { const r = arena.getBoundingClientRect(); px = e.clientX - r.left; py = e.clientY - r.top; });
+  arena.addEventListener('pointerleave', () => { px = py = -999; });
+
+  function placeBig(x, y) { bx = x; by = y; big.style.left = x + 'px'; big.style.top = y + 'px'; }
+
+  function say(text, ms = 2400) {
+    bubble.textContent = text; bubble.classList.add('on');
+    clearTimeout(bubbleHide); bubbleHide = setTimeout(() => bubble.classList.remove('on'), ms);
+  }
+
+  let bannerHide;
+  function showBanner(text) {
+    banner.textContent = text; banner.classList.add('on');
+    clearTimeout(bannerHide); bannerHide = setTimeout(() => banner.classList.remove('on'), 3600);
+  }
+
+  function floatText(x, y, text, color) {
+    const f = document.createElement('div');
+    f.className = 'float'; f.textContent = text; f.style.left = x + 'px'; f.style.top = y + 'px'; f.style.color = color;
+    arena.appendChild(f); setTimeout(() => f.remove(), 1000);
+  }
+
+  function hit(color) { flash.style.background = color; flash.classList.remove('hit'); void flash.offsetWidth; flash.classList.add('hit'); }
+
+  function hud() {
+    $('#score').textContent = score;
+    $('#time').textContent = elapsed.toFixed(1).replace('.', ',');
+    $('#level').textContent = level;
+    $('#lives').textContent = '♥'.repeat(lives) + '♡'.repeat(Math.max(0, 3 - lives));
+  }
+
+  // ---------- Start ----------
+  function startScreen() {
+    state = 'start';
+    const presses = store.get('presses', 0), best = store.get('best', 0);
+    card.innerHTML = `
+      <div class="k">Vibe Jam 2026 · Lag 8</div>
+      <h1>Rör inte knappen</h1>
+      <p>Du har nattpasset i kontrollrummet. Knappar dyker upp och vill bli tryckta på innan tiden tar slut. Tryck på alla.</p>
+      <p><b>Utom en.</b></p>
+      <ul>
+        <li>Gula knappar: tryck innan stapeln tar slut. Missar du tre är passet över.</li>
+        <li>Den röda knappen: rör den inte. Den kommer att försöka få dig att göra det.</li>
+        <li>Från nivå 3 klär den ut sig till en gul knapp. Den kan inte stava.</li>
+      </ul>
+      ${best ? `<p class="small">Ditt rekord: ${best} poäng.${presses ? ` Du har tryckt på knappen ${presses} ${presses === 1 ? 'gång' : 'gånger'}.` : ''}</p>` : ''}
+      <div class="row">
+        <button class="go" id="go">Börja passet</button>
+        <button class="red" id="cardRed">TRYCK<br>INTE</button>
+      </div>
+      <p class="small" style="margin-top:18px"><a href="instructions.html">Instruktioner</a></p>`;
+    ov.hidden = false;
+    $('#go').onclick = startGame;
+    $('#cardRed').onclick = () => boom('start');
+    big.style.visibility = 'hidden';
+  }
+
+  function startGame() {
+    tasks.forEach(t => t.el.remove());
+    tasks = []; score = 0; lives = 3; level = 1; done = 0; elapsed = 0; spawnIn = .6;
+    mode = 'still'; modeT = 0; bubbleT = rand(3, 5); nearT = 0; labelT = 5;
+    big.innerHTML = BIG_LABELS[0]; big.className = 'red'; big.style.cssText = '';
+    placeBig(W() / 2, H() / 2); tx = bx; ty = by;
+    document.body.className = '';
+    $('#hud').className = '';
+    ov.hidden = true; state = 'play'; hud();
+    showBanner('Nivå 1: Tryck på de gula. Inte på den röda.');
+    last = performance.now(); requestAnimationFrame(frame);
+  }
+
+  // ---------- Uppgifter ----------
+  function spawn() {
+    const max = Math.min(6, 2 + Math.floor(level / 2));
+    if (tasks.filter(t => !t.fake).length >= max) return;
+    const fakeP = level >= 3 ? Math.min(.33, .16 + (level - 3) * .04) : 0;
+    const fake = Math.random() < fakeP;
+    const label = pick(LABELS.filter(l => !tasks.some(t => t.label === l)));
+    const text = fake ? typo(label) : label;
+
+    const el = document.createElement('button');
+    el.className = 'task';
+    el.innerHTML = `<span></span><span class="bar"><i></i></span>`;
+    el.firstChild.textContent = text;
+    arena.appendChild(el);
+
+    const w = W(), h = H(), ew = el.offsetWidth / 2 + 8, eh = el.offsetHeight / 2 + 8;
+    let x, y, ok = false;
+    for (let i = 0; i < 30 && !ok; i++) {
+      x = rand(ew, w - ew); y = rand(eh + 50, h - eh);
+      ok = tasks.every(t => Math.abs(t.x - x) > (t.w / 2 + ew + 6) || Math.abs(t.y - y) > (t.h / 2 + eh + 6))
+        && Math.hypot(bx - x, by - y) > bigR() + 70;
+    }
+    el.style.left = x + 'px'; el.style.top = y + 'px';
+
+    const dur = Math.max(2.3, 5 - level * .32) * (fake ? 1.1 : 1);
+    const t = { el, x, y, w: el.offsetWidth, h: el.offsetHeight, label, fake, dur, left: dur, bar: el.querySelector('i') };
+    el.onclick = e => { e.stopPropagation(); press(t); };
+    tasks.push(t);
+  }
+
+  function removeTask(t) { tasks = tasks.filter(o => o !== t); t.el.remove(); }
+
+  function press(t) {
+    if (state !== 'play') return;
+    if (t.fake) { boom('disguise', t); return; }
+    removeTask(t);
+    const pts = 10 + level * 2;
+    score += pts; done++;
+    floatText(t.x, t.y, '+' + pts, 'var(--ok)'); sfx.ok();
+    const nl = Math.min(9, 1 + Math.floor(done / 6));
+    if (nl > level) {
+      level = nl;
+      showBanner(LEVEL_MSG[level] || `Nivå ${level}: Ännu fortare.`);
+      if (level === 3) say('Hehe. Gissa vilken jag är.', 3000);
+    }
+  }
+
+  function expire(t) {
+    removeTask(t);
+    if (t.fake) {
+      score += 15;
+      floatText(t.x, t.y, 'Avslöjad! +15', 'var(--ok)'); sfx.dodge();
+      say(pick(['Nästa gång.', 'Hur visste du?!', 'Jag stavar visst bra.']));
+      return;
+    }
+    lives--;
+    floatText(t.x, t.y, 'Missad!', 'var(--warn)'); sfx.miss(); hit('var(--warn)');
+    if (lives <= 0) { hud(); neglect(); }
+  }
+
+  // ---------- Röda knappens beteende ----------
+  function moveBig(dt) {
+    const w = W(), h = H(), r = bigR() + 14;
+    modeT -= dt;
+    if (level >= 2 && modeT <= 0) {
+      mode = level >= 4 && Math.random() < .55 ? 'chase' : 'wander';
+      modeT = rand(3, 5);
+      tx = rand(r, w - r); ty = rand(r + 40, h - r);
+    }
+    if (mode === 'chase' && px > -999) {
+      const dx = px - bx, dy = py - by, d = Math.hypot(dx, dy) || 1;
+      const stop = bigR() + 40;
+      tx = bx + dx / d * Math.max(0, d - stop); ty = by + dy / d * Math.max(0, d - stop);
+    }
+    if (mode === 'still') return;
+    const speed = (mode === 'chase' ? 75 : 45) + level * 9;
+    const dx = tx - bx, dy = ty - by, d = Math.hypot(dx, dy);
+    if (d < 2) { if (mode === 'wander') modeT = Math.min(modeT, .6); return; }
+    const s = Math.min(d, speed * dt);
+    placeBig(Math.max(r, Math.min(w - r, bx + dx / d * s)), Math.max(r, Math.min(h - r, by + dy / d * s)));
+  }
+
+  function frame(now) {
+    if (state !== 'play') return;
+    const dt = Math.min(.05, (now - last) / 1000); last = now;
+    elapsed += dt;
+
+    spawnIn -= dt;
+    if (!tasks.some(t => !t.fake)) spawnIn = Math.min(spawnIn, .35);
+    if (spawnIn <= 0) { spawn(); spawnIn = Math.max(.5, 1.9 - level * .17) * rand(.7, 1.3); }
+
+    for (const t of [...tasks]) {
+      t.left -= dt;
+      t.bar.style.transform = `scaleX(${Math.max(0, t.left / t.dur)})`;
+      if (t.left < t.dur * .3) t.el.classList.add('urgent');
+      if (t.left <= 0) { expire(t); if (state !== 'play') return; }
+    }
+
+    moveBig(dt);
+    bubble.style.left = bx + 'px'; bubble.style.top = (by - bigR() - 18) + 'px';
+
+    bubbleT -= dt;
+    if (bubbleT <= 0) { say(pick(TEMPT)); bubbleT = rand(5, 9); }
+    nearT -= dt;
+    if (nearT <= 0 && px > -999 && Math.hypot(px - bx, py - by) < bigR() + 50) { say(pick(NEAR), 1400); nearT = 6; }
+    if (level >= 5) {
+      labelT -= dt;
+      if (labelT <= 0) { big.innerHTML = Math.random() < .4 ? BIG_LABELS[0] : pick(BIG_LABELS); labelT = rand(2.5, 5); }
+    }
+
+    hud();
+    requestAnimationFrame(frame);
+  }
+
+  big.onclick = () => { if (state === 'play') boom('big'); };
+
+  // ---------- När man trycker ----------
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+
+  async function boom(how, fakeTask) {
+    if (state === 'boom') return;
+    const from = state;
+    state = 'boom';
+    ov.hidden = true;
+    bubble.classList.remove('on'); banner.classList.remove('on');
+    const presses = store.get('presses', 0) + 1; store.set('presses', presses);
+
+    if (fakeTask) {
+      fakeTask.el.style.transition = 'background .25s, color .25s';
+      fakeTask.el.style.background = 'var(--red)'; fakeTask.el.style.color = '#fff';
+      fakeTask.el.firstChild.textContent = 'HEJ DÅ';
+    }
+    big.style.visibility = from === 'start' ? 'hidden' : 'visible';
+    big.innerHTML = '…';
+    sfx.boom(); hit('#fff');
+    await wait(500);
+
+    document.body.classList.add('alarm', 'shake'); sfx.siren();
+    boomtxt.textContent = how === 'disguise' ? 'Det där var knappen.' : how === 'start' ? 'Du hann inte ens börja.' : 'Du tryckte på knappen.';
+    await wait(1500);
+    for (const n of ['3', '2', '1']) { boomtxt.textContent = 'Självförstörelse om ' + n; sfx.tick(); await wait(650); }
+    boomtxt.textContent = '';
+
+    // Allt ramlar ner
+    sfx.boom(); hit('#fff');
+    document.body.classList.remove('shake');
+    const falling = [$('#hud'), big, ...tasks.map(t => t.el)];
+    falling.forEach(el => {
+      el.style.setProperty('--dx', rand(-160, 160) + 'px');
+      el.style.setProperty('--r', rand(-200, 200) + 'deg');
+      el.style.animationDelay = rand(0, .35) + 's';
+      el.classList.add('fall');
+    });
+    await wait(1700);
+    document.body.className = 'dark';
+    await wait(900);
+
+    const best = Math.max(store.get('best', 0), score || 0); store.set('best', best);
+    showEnd({
+      k: 'Passet avbrutet',
+      title: how === 'start' ? 'Det tog 0 sekunder.' : how === 'disguise' ? 'Den kan inte stava. Det kunde inte du heller se.' : 'Du tryckte på knappen.',
+      conseq: pick(CONSEQ), presses, best, redLabel: 'TRYCK<br>IGEN?'
+    });
+  }
+
+  function neglect() {
+    state = 'end';
+    sfx.siren(4);
+    const best = Math.max(store.get('best', 0), score); store.set('best', best);
+    setTimeout(() => showEnd({
+      k: 'Passet slut',
+      title: 'Kontrollrummet gick sönder.',
+      intro: 'Av ren försumlighet: tre knappar fick vänta för länge. Men du rörde aldrig den röda knappen. Det är ändå något.',
+      presses: store.get('presses', 0), best, redLabel: 'NU SPELAR<br>DET VÄL<br>INGEN ROLL?', neglect: true
+    }), 600);
+  }
+
+  function showEnd(o) {
+    state = 'end';
+    card.innerHTML = `
+      <div class="k">${o.k}</div>
+      <h1>${o.title}</h1>
+      ${o.intro ? `<p>${o.intro}</p>` : ''}
+      ${o.conseq ? `<p class="small" style="margin:0">Konsekvens:</p><div class="conseq" id="conseq">${o.conseq}</div>` : ''}
+      <div class="stats">
+        <div><b>${score || 0}</b><span>poäng</span></div>
+        <div><b>${(elapsed || 0).toFixed(1).replace('.', ',')} s</b><span>i tjänst</span></div>
+        <div><b>${done || 0}</b><span>knappar rätt</span></div>
+      </div>
+      <p class="small" id="tally">Rekord: ${o.best} poäng. Knappen har tryckts ${o.presses} ${o.presses === 1 ? 'gång' : 'gånger'} på den här datorn.</p>
+      <div class="row">
+        <button class="go" id="again">Nytt pass</button>
+        <button class="red" id="cardRed">${o.redLabel}</button>
+      </div>
+      <p class="small" style="margin-top:18px"><a href="instructions.html">Instruktioner</a></p>`;
+    ov.hidden = false;
+    $('#again').onclick = () => { resetScene(); startGame(); };
+    $('#cardRed').onclick = o.neglect ? () => boom('big') : pressAgain;
+  }
+
+  function pressAgain() {
+    const presses = store.get('presses', 0) + 1; store.set('presses', presses);
+    sfx.boom(); sfx.siren(3); hit('var(--red)');
+    card.querySelector('h1').textContent = pick(AGAIN);
+    const c = $('#conseq'); if (c) c.textContent = pick(CONSEQ);
+    $('#tally').textContent = `Rekord: ${store.get('best', 0)} poäng. Knappen har tryckts ${presses} gånger på den här datorn.`;
+  }
+
+  function resetScene() {
+    document.body.className = '';
+    [$('#hud'), big, ...tasks.map(t => t.el)].forEach(el => { el.classList.remove('fall'); el.style.animationDelay = ''; });
+    big.style.visibility = 'visible';
+  }
+
+  window.addEventListener('resize', () => {
+    if (state !== 'play') return;
+    const r = bigR() + 14;
+    placeBig(Math.max(r, Math.min(W() - r, bx)), Math.max(r, Math.min(H() - r, by)));
+  });
+
+  tasks = []; score = 0; lives = 3; level = 1; done = 0; elapsed = 0;
+  hud();
+  startScreen();
+})();
+</script>
+</body>
+</html>
