@@ -1,7 +1,7 @@
 // Museum Aurora 3D: a third-person night-guard game.
 import * as THREE from './vendor/three.module.min.js';
 import { buildFlyghallen } from './rooms/flyghallen.js';
-import { buildBoss } from './rooms/boss.js';
+import './rooms/boss.js'; // Slutbossen (lägger window.MuseumBoss)
 
 const $ = id => document.getElementById(id);
 const TAU = Math.PI * 2;
@@ -634,8 +634,11 @@ const guard = buildGuard();
 const S = {state:'loading', room:null, visited:new Set(), stars:0, t0:0, tEnd:0, sound:true, yaw:0, pitch:.32, heading:Math.PI, walk:0, alarm:false, shake:0, cine:null};
 const pos = new THREE.Vector3();
 // Slutbossen: gorillan i Skattkammaren (rooms/boss.js)
-const boss = buildBoss({scene, room: ROOMS.skatt, guard, S, pos, tween, wait, tone, burst: (...a) => burst(...a),
-  shake: v => { S.shake = Math.max(S.shake, v); }, onStart: () => { hidePlaque(); near = null; }, onWin: () => win()});
+const boss = window.MuseumBoss.buildBoss({THREE, scene, center: ROOMS.skatt.c, guard, pos,
+  getHeading: () => S.heading, setHeading: h => { S.heading = h; },
+  setCine: (p, look) => { S.cine = {pos: p, look}; }, clearCine: () => { S.cine = null; },
+  tween, wait, beep: tone, burst: (...a) => burst(...a), shake: v => { S.shake = Math.max(S.shake, v); },
+  onStart: () => { S.state = 'boss'; hidePlaque(); near = null; }, onWin: () => win()});
 function resetGame(){
   pos.set(ROOMS.entre.c.x, 0, ROOMS.entre.c.z + 3); S.heading = Math.PI; S.yaw = 0; S.pitch = .32;
   guard.body.rotation.set(0, 0, 0); guard.body.position.set(0, 0, 0); guard.head.visible = true; guard.stump.visible = false;

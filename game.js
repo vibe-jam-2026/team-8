@@ -990,7 +990,7 @@ function win() {
   if (S.busy) return; S.busy = true; S.won = true; hidePlaque(); setPrompt(null); sfx.win();
   if (crownObj) crownObj.visible = false;
   const secs = (performance.now() - S.t0) / 1000;
-  $('winText').textContent = `Du hittade alla sex stjärnor, öppnade valvet och räddade Aurorakronan på ${fmt(secs)}. Och du lät bli knappen. Klokt.`;
+  $('winText').textContent = `Du hittade alla sex stjärnor, öppnade valvet, slog Valvgorillan Bruno knockout och räddade Aurorakronan på ${fmt(secs)}. Och du lät bli knappen. Klokt.`;
   setTimeout(() => { $('win').hidden = false; }, 600);
 }
 
@@ -998,6 +998,7 @@ function win() {
 addEventListener('keydown', e => {
   A(); if (!S.started) return;
   S.keys[e.code] = true;
+  if (boss.phase === 'fight') { boss.key(e.code); return; } // Slutbossen: W/A/S/D slår
   if (e.code === 'KeyE' || e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); use(); }
   if (e.code === 'Escape') hidePlaque();
   if (e.code === 'KeyF' && !e.repeat) toggleFlash();
@@ -1358,7 +1359,9 @@ function tick() {
   if (S.started && !S.busy) updatePlayer(dt);
   // room
   const k = roomAt(guard.p.position.x, guard.p.position.z);
-  if (k && k !== S.room) { S.room = k; setRoomHud(k); }
+  if (k && k !== S.room) { S.room = k; setRoomHud(k);
+    // Slutbossen: gorillan väntar i Skattkammaren när valvet är öppet
+    if (k === 'skatt' && S.unlocked && S.started && !S.busy && boss.phase === 'idle' && !boss.beaten) boss.start(); }
   // nearest interactable
   if (S.started && !S.busy) {
     let best = null, bd = 1e9; const p = guard.p.position;
@@ -1399,7 +1402,7 @@ function tick() {
   if (S.drip > 0) { S.drip -= dt; if (Math.random() < .6) emitBlood(dino.mouth.getWorldPosition(V3()), V3(0, -1, 0), 1 + (Math.random() * 2 | 0), .4, .5); }
   if (S.pool) { S.pool = Math.min(1.6, S.pool + dt * .3); pool.scale.setScalar(S.pool); }
   updateBlood(dt);
-  updateNuns(dt, t); updateScares(dt); updateDust(dt, t);
+  updateNuns(dt, t); updateScares(dt); updateDust(dt, t); boss.update(dt, t);
   if (S.jump) { S.jump.t -= dt; if (S.jump.t <= 0) { S.jump = null; jumpCanvas.style.display = 'none'; } else drawJump(S.jump.t); }
   speakT -= dt; updateDrips(dt); updatePortraits(dt);
   guard.beam.lookAt(guard.spot.target.getWorldPosition(tmpV));
@@ -1418,10 +1421,22 @@ function openVault() {
   const i = colliders.indexOf(lockCol); if (i >= 0) colliders.splice(i, 1);
   tween(2500, k => { lockDoor.position.y = DOOR_H * ease(k); });
 }
+// ---------- slutbossen: Valvgorillan Bruno (rooms/boss.js) ----------
+const boss = window.MuseumBoss.buildBoss({ THREE, scene, center: center('skatt'), guard, pos: guard.p.position,
+  getHeading: () => guard.p.rotation.y, setHeading: h => { guard.p.rotation.y = h; },
+  setCine: (p, look) => { if (!S.cine) lookNow.copy(camTarget); S.cine = true; cinePos.copy(p); cineLook.copy(look); },
+  clearCine: () => { S.cine = false; S.yaw = guard.p.rotation.y - Math.PI; },
+  tween, wait, shake: v => { S.shake = Math.max(S.shake, v * 2); },
+  beep: (freqs, dur, type, vol) => { if (!A()) return; const t = ac.currentTime; freqs.forEach((f, i) => tone(type, f, f, t + i * dur, .01, vol, dur * 1.8)); },
+  burst: (p, colors, n, speed) => emitBlood(p, UP, n, speed, 1.2),
+  onStart: () => { S.busy = true; S.keys = {}; hidePlaque(); setPrompt(null); },
+  onWin: () => { S.busy = false; win(); },
+  arenaIntensity: 2 });
+
 setRoomHud('entre');
 tick();
 addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
 
 // small hooks for automated testing
-window.__aurora = { S, guard, dino, nuns, faceTex, toggleFlash, cam(pos, look) { S.cine = true; cinePos.set(...pos); cineLook.set(...look); lookNow.set(...look); camera.position.set(...pos); }, teleport(k, x, z, yaw = 0) { const c = center(k); guard.p.position.set(c.x + x, 0, c.z + z); S.yaw = yaw; }, doom, stars, openVault };
+window.__aurora = { S, guard, dino, nuns, faceTex, toggleFlash, cam(pos, look) { S.cine = true; cinePos.set(...pos); cineLook.set(...look); lookNow.set(...look); camera.position.set(...pos); }, teleport(k, x, z, yaw = 0) { const c = center(k); guard.p.position.set(c.x + x, 0, c.z + z); S.yaw = yaw; }, doom, stars, openVault, boss };
 })();

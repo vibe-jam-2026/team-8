@@ -3,7 +3,14 @@
 // gorilla ner från taket. Fighten är ett quick time event: en ring krymper mot
 // en tangent (W, A, S eller D) och man ska trycka exakt när ringen når målet.
 // Träffar man tillräckligt många gånger slås gorillan knockout och man vinner.
-import * as THREE from '../vendor/three.module.min.js';
+//
+// Filen är ett vanligt skript (ingen modul) så att båda versionerna kan använda den:
+// skräckversionen laddar den med <script src> (fungerar även från disk), lagets
+// version med import './rooms/boss.js'. Den lägger window.MuseumBoss.buildBoss,
+// och spelet skickar in sin egen THREE, vakten, kameran och ljuden.
+(function () {
+'use strict';
+let THREE;
 
 const HITS_NEEDED = 8;      // så många träffar krävs för knockout
 const LIVES = 3;            // så många missar tål vakten
@@ -37,12 +44,14 @@ const CSS = `
 }
 `;
 
+// Äldre three.js (r149, skräckversionen) tolkar färgkoder som linjära; då omvandlar vi själva.
+function col(hex) { const c = new THREE.Color(hex); if (THREE.ColorManagement && THREE.ColorManagement.legacyMode) c.convertSRGBToLinear(); return c; }
 function buildGorilla() {
   const g = new THREE.Group(), body = new THREE.Group(); g.add(body);
-  const fur = new THREE.MeshStandardMaterial({color: '#25211e', roughness: 1});
-  const skin = new THREE.MeshStandardMaterial({color: '#4a3d37', roughness: .8});
-  const chestM = new THREE.MeshStandardMaterial({color: '#3b332e', roughness: .9});
-  const silver = new THREE.MeshStandardMaterial({color: '#6e6a66', roughness: 1});
+  const fur = new THREE.MeshStandardMaterial({color: col('#25211e'), roughness: 1});
+  const skin = new THREE.MeshStandardMaterial({color: col('#4a3d37'), roughness: .8});
+  const chestM = new THREE.MeshStandardMaterial({color: col('#3b332e'), roughness: .9});
+  const silver = new THREE.MeshStandardMaterial({color: col('#6e6a66'), roughness: 1});
   const limb = (len, r, mat, x, y, z = 0) => {
     const piv = new THREE.Group(); piv.position.set(x, y, z);
     const m = new THREE.Mesh(new THREE.CapsuleGeometry(r, len, 6, 12), mat); m.position.y = -len / 2; piv.add(m);
@@ -67,25 +76,33 @@ function buildGorilla() {
   const face = new THREE.Mesh(new THREE.SphereGeometry(.27, 20, 14), skin); face.scale.set(1.05, .95, .6); face.position.set(0, -.02, .2); head.add(face);
   const brow = new THREE.Mesh(new THREE.BoxGeometry(.48, .09, .14), skin); brow.position.set(0, .1, .33); brow.rotation.x = -.25; head.add(brow);
   const muzzle = new THREE.Mesh(new THREE.SphereGeometry(.2, 16, 12), skin); muzzle.scale.set(1.2, .8, .8); muzzle.position.set(0, -.15, .34); head.add(muzzle);
-  const eyeM = new THREE.MeshStandardMaterial({color: '#ffdd88', emissive: '#ff3a00', emissiveIntensity: .9});
+  const eyeM = new THREE.MeshStandardMaterial({color: col('#ffdd88'), emissive: col('#ff3a00'), emissiveIntensity: .9});
   for (const sx of [-.1, .1]) {
     const e = new THREE.Mesh(new THREE.SphereGeometry(.04, 10, 8), eyeM); e.position.set(sx, .03, .41); head.add(e);
-    const n = new THREE.Mesh(new THREE.SphereGeometry(.03, 8, 6), new THREE.MeshStandardMaterial({color: '#111'})); n.position.set(sx * .5, -.1, .5); head.add(n);
+    const n = new THREE.Mesh(new THREE.SphereGeometry(.03, 8, 6), new THREE.MeshStandardMaterial({color: col('#111')})); n.position.set(sx * .5, -.1, .5); head.add(n);
   }
-  const mouth = new THREE.Mesh(new THREE.BoxGeometry(.22, .035, .04), new THREE.MeshStandardMaterial({color: '#140c0a'})); mouth.position.set(0, -.25, .46); head.add(mouth);
+  const mouth = new THREE.Mesh(new THREE.BoxGeometry(.22, .035, .04), new THREE.MeshStandardMaterial({color: col('#140c0a')})); mouth.position.set(0, -.25, .46); head.add(mouth);
   // skugga
-  const shadow = new THREE.Mesh(new THREE.CircleGeometry(.9, 24), new THREE.MeshBasicMaterial({color: '#000', transparent: true, opacity: .4, depthWrite: false}));
+  const shadow = new THREE.Mesh(new THREE.CircleGeometry(.9, 24), new THREE.MeshBasicMaterial({color: col('#000'), transparent: true, opacity: .4, depthWrite: false}));
   shadow.rotation.x = -Math.PI / 2; shadow.position.y = .016; g.add(shadow);
   // snurrande stjärnor vid knockout
   const dizzy = new THREE.Group(); dizzy.position.set(0, 2.9, 0); dizzy.visible = false; body.add(dizzy);
   for (let i = 0; i < 4; i++) {
-    const s = new THREE.Mesh(new THREE.OctahedronGeometry(.09), new THREE.MeshBasicMaterial({color: '#ffd34d'}));
+    const s = new THREE.Mesh(new THREE.OctahedronGeometry(.09), new THREE.MeshBasicMaterial({color: col('#ffd34d')}));
     const a = i / 4 * Math.PI * 2; s.position.set(Math.cos(a) * .4, 0, Math.sin(a) * .4); dizzy.add(s);
   }
   return {g, body, legL, legR, armL, armR, head, mouth, shadow, dizzy};
 }
 
-export function buildBoss({scene, room, guard, S, pos, tween, wait, tone, burst, shake, onStart = () => {}, onWin}) {
+/**
+ * opts: THREE, scene, center {x, z} (Skattkammarens mitt), guard {body, legL, legR, armL, armR},
+ * pos (vaktens position, en Vector3 som ändras), getHeading(), setHeading(h), setCine(pos, look), clearCine(),
+ * tween, wait, beep(freqs, dur, type, vol), burst(pos, colors, n, speed), shake(v),
+ * onStart(), onWin(), arenaIntensity (ljuset över fighten, olika per renderer)
+ */
+function buildBoss({THREE: T3, scene, center, guard, pos, getHeading, setHeading, setCine, clearCine, tween, wait, beep: tone, burst, shake,
+  onStart = () => {}, onWin, arenaIntensity = 30}) {
+  THREE = T3;
   // --- DOM
   const style = document.createElement('style'); style.textContent = CSS; document.head.append(style);
   const el = (html) => { const d = document.createElement('div'); d.innerHTML = html.trim(); return document.body.appendChild(d.firstChild); };
@@ -101,7 +118,7 @@ export function buildBoss({scene, room, guard, S, pos, tween, wait, tone, burst,
 
   // --- 3D
   const gor = buildGorilla(); gor.g.visible = false; scene.add(gor.g);
-  const {x: cx, z: cz} = room.c;
+  const {x: cx, z: cz} = center;
   const GUARD_SPOT = new THREE.Vector3(cx, 0, cz + 3.0), GOR_SPOT = new THREE.Vector3(cx, 0, cz + 1.2);
   const arenaLight = new THREE.PointLight('#ffe2b0', 0, 12, 2); arenaLight.position.set(cx, 3.6, cz + 2.4); scene.add(arenaLight);
 
@@ -128,17 +145,17 @@ export function buildBoss({scene, room, guard, S, pos, tween, wait, tone, burst,
 
   async function start() {
     if (B.phase !== 'idle' || B.beaten) return;
-    B.phase = 'intro'; S.state = 'boss'; onStart();
+    B.phase = 'intro'; onStart();
     const tok = ++B.token;
     // kameran från sidan
     const mid = new THREE.Vector3(cx, 1.4, (GUARD_SPOT.z + GOR_SPOT.z) / 2);
-    S.cine = {pos: new THREE.Vector3(cx + 5.6, 2.5, mid.z + 1.2), look: mid};
-    arenaLight.intensity = 0; tween(800, k => { arenaLight.intensity = 30 * k; });
+    setCine(new THREE.Vector3(cx + 5.6, 2.5, mid.z + 1.2), mid);
+    arenaLight.intensity = 0; tween(800, k => { arenaLight.intensity = arenaIntensity * k; });
     // vakten går fram till sin plats
-    const p0 = pos.clone(), h0 = S.heading;
+    const p0 = pos.clone(), h0 = getHeading();
     let dh = ((Math.PI - h0 + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
     await tween(900, k => {
-      pos.lerpVectors(p0, GUARD_SPOT, ease(k)); S.heading = h0 + dh * ease(k);
+      pos.lerpVectors(p0, GUARD_SPOT, ease(k)); setHeading(h0 + dh * ease(k));
       const sw = Math.sin(k * 14) * .6; guard.legL.rotation.x = sw; guard.legR.rotation.x = -sw;
     });
     if (tok !== B.token) return;
@@ -161,9 +178,9 @@ export function buildBoss({scene, room, guard, S, pos, tween, wait, tone, burst,
   }
 
   function fight() {
-    B.hits = 0; B.lives = LIVES; B.phase = 'fight'; S.state = 'boss';
+    B.hits = 0; B.lives = LIVES; B.phase = 'fight';
     setGuardPose(); setGorillaPose(); gor.g.visible = true; gor.g.position.copy(GOR_SPOT);
-    pos.copy(GUARD_SPOT); S.heading = Math.PI;
+    pos.copy(GUARD_SPOT); setHeading(Math.PI);
     hud.hidden = false; drawHud();
     flash('Slå med W A S D i rätt takt!', 'perfect');
     next(1300);
@@ -238,7 +255,7 @@ export function buildBoss({scene, room, guard, S, pos, tween, wait, tone, burst,
     if (tok !== B.token) return;
     await wait(500);
     B.beaten = true; B.phase = 'done'; guard.armL.rotation.z = 0; guard.armR.rotation.z = 0;
-    S.cine = null; arenaLight.intensity = 12;
+    clearCine(); arenaLight.intensity = arenaIntensity * .4;
     onWin();
   }
 
@@ -251,6 +268,7 @@ export function buildBoss({scene, room, guard, S, pos, tween, wait, tone, burst,
     await tween(1000, k => { const s = Math.sin(k * Math.PI * 8); gor.armL.rotation.x = -1.4 + Math.max(0, s) * .5; gor.armR.rotation.x = -1.4 + Math.max(0, -s) * .5; gor.armL.rotation.z = .5; gor.armR.rotation.z = -.5; });
     if (tok !== B.token) return;
     setGorillaPose();
+    document.exitPointerLock?.();
     ko.hidden = false;
   }
 
@@ -279,3 +297,6 @@ export function buildBoss({scene, room, guard, S, pos, tween, wait, tone, burst,
 
   return {start, key, update, reset, get phase() { return B.phase; }, get beaten() { return B.beaten; }, get beat() { return B.beat; }, B};
 }
+
+window.MuseumBoss = {buildBoss};
+})();
