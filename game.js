@@ -569,12 +569,15 @@ function buildGuard(){
   for (const a of [armL, armR]){ const h = sph(.07, skin); h.position.y = -.65; a.add(h); }
   const torch = cyl(.045, .055, .26, M('#444', {metalness:.6})); torch.rotation.x = Math.PI/2; torch.position.set(0, -.66, .12); armR.add(torch);
   const lens = new THREE.Mesh(new THREE.CircleGeometry(.045, 16), new THREE.MeshBasicMaterial({color:'#fff6cc'})); lens.position.set(0, -.66, .251); armR.add(lens);
-  const head = new THREE.Group(); head.position.y = 1.78; body.add(head);
-  head.add(sph(.18, skin));
-  for (const s of [-.065, .065]){ const e = sph(.022, M('#222')); e.position.set(s, .02, .165); head.add(e); }
-  const cap = cyl(.19, .19, .1, dark, 24); cap.position.y = .12; head.add(cap);
-  add(cyl(.2, .2, .03, M('#e2b552'), 24), 0, .08, 0, head);
-  const visor = box(.3, .025, .16, dark); visor.position.set(0, .07, .17); head.add(visor);
+  const head = new THREE.Group(); head.position.y = 1.83; body.add(head);
+  // photo face wrapped around the front half of the head, hair colour on the back half
+  const face = new THREE.TextureLoader().load('assets/player-head.jpg', () => { loaded++; progress(); }, undefined, () => { loaded++; progress(); }); pending++;
+  face.colorSpace = THREE.SRGBColorSpace; face.anisotropy = 8; face.repeat.set(.46, .6); face.offset.set(.25, .27);
+  head.add(new THREE.Mesh(new THREE.SphereGeometry(.22, 40, 28, 0, Math.PI), new THREE.MeshStandardMaterial({map: face, roughness:.8})));
+  head.add(new THREE.Mesh(new THREE.SphereGeometry(.22, 40, 28, Math.PI, Math.PI), M('#6b4a2e')));
+  const cap = cyl(.2, .21, .09, dark, 24); cap.position.y = .19; head.add(cap);
+  add(cyl(.215, .215, .025, M('#e2b552'), 24), 0, .15, 0, head);
+  const visor = box(.3, .022, .14, dark); visor.position.set(0, .15, .2); head.add(visor);
   const neck = cyl(.07, .08, .12, skin, 12); neck.position.y = 1.62; body.add(neck);
   const stump = cyl(.075, .075, .02, M('#c23b3b'), 12); stump.position.y = 1.69; stump.visible = false; body.add(stump);
   // flashlight
