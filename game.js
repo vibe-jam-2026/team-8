@@ -556,6 +556,112 @@ function bloodWriting(k, side, along, y, text, w = 4) {
   onWall(new THREE.Mesh(new THREE.PlaneGeometry(w, w * 300 / 1024), new THREE.MeshStandardMaterial({ map: t, transparent: true, roughness: .25 })), k, side, along, y, null, .012);
 }
 
+// ---------- portraits of the man in the photo, all over the museum ----------
+const portraitImg = new Image();
+const PEYES = [[75, 93], [117, 92]], PMOUTH = [97, 125]; // positions in the 200x200 photo
+const PVARIANTS = ['normal', 'bleeding', 'hollow', 'red', 'scratched', 'smile', 'upside', 'burnt'];
+const portraitTex = {};
+for (const v of PVARIANTS) portraitTex[v] = canvasTex(512, 512, (g, w, h) => { g.fillStyle = '#2a2420'; g.fillRect(0, 0, w, h); });
+function drawPortrait(v) {
+  const { g } = portraitTex[v].userData, w = 512, s = w / 200, R = rng(v.length * 91);
+  g.save(); g.clearRect(0, 0, w, w);
+  if (v === 'upside') { g.translate(w, w); g.rotate(Math.PI); }
+  g.filter = v === 'red' ? 'sepia(1) saturate(7) hue-rotate(-45deg) brightness(.75) contrast(1.3)' : 'sepia(.45) contrast(1.15) brightness(.95)';
+  g.drawImage(portraitImg, 0, 0, 200, 200, 0, 0, w, w); g.filter = 'none';
+  const vg = g.createRadialGradient(w / 2, w * .45, w * .25, w / 2, w / 2, w * .75); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(10,5,0,.85)'); g.fillStyle = vg; g.fillRect(0, 0, w, w);
+  g.strokeStyle = 'rgba(0,0,0,.25)'; g.lineWidth = 1; for (let i = 0; i < 90; i++) { g.beginPath(); let x = R() * w, y = R() * w; g.moveTo(x, y); for (let k = 0; k < 4; k++) { x += (R() - .5) * 40; y += (R() - .5) * 40; g.lineTo(x, y); } g.stroke(); }
+  const tears = (n, wide) => { for (const [ex, ey] of PEYES) for (let k = 0; k < n; k++) { const x = ex * s + (R() - .5) * 26, len = 120 + R() * 280, wd = (wide ? 6 : 3) + R() * 5; const gr = g.createLinearGradient(0, ey * s, 0, ey * s + len); gr.addColorStop(0, '#7a0008'); gr.addColorStop(1, '#3a0004'); g.fillStyle = gr; g.fillRect(x, ey * s + 6, wd, len); g.beginPath(); g.arc(x + wd / 2, ey * s + 6 + len, wd * .9, 0, 7); g.fill(); } };
+  if (v === 'bleeding') { tears(3, true); for (const [ex, ey] of PEYES) { g.fillStyle = 'rgba(120,0,0,.55)'; g.beginPath(); g.ellipse(ex * s, ey * s, 26, 14, 0, 0, 7); g.fill(); } }
+  if (v === 'hollow' || v === 'burnt') { for (const [ex, ey] of PEYES) { const gr = g.createRadialGradient(ex * s, ey * s, 4, ex * s, ey * s, 34); gr.addColorStop(0, '#000'); gr.addColorStop(.7, 'rgba(0,0,0,.95)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.beginPath(); g.ellipse(ex * s, ey * s, 34, 26, 0, 0, 7); g.fill(); g.fillStyle = '#ff2a1a'; g.beginPath(); g.arc(ex * s, ey * s, 3.5, 0, 7); g.fill(); } tears(1, false); }
+  if (v === 'smile') { const [mx, my] = PMOUTH; g.fillStyle = '#120000'; g.beginPath(); g.moveTo(mx * s - 120, my * s - 60); g.quadraticCurveTo(mx * s, my * s + 90, mx * s + 120, my * s - 60); g.quadraticCurveTo(mx * s, my * s + 30, mx * s - 120, my * s - 60); g.fill();
+    g.fillStyle = '#e8dcc0'; for (let k = 0; k < 14; k++) { const x = mx * s - 90 + k * 13, y = my * s - 10 + Math.sin(k / 13 * Math.PI) * 30; g.beginPath(); g.moveTo(x, y); g.lineTo(x + 6, y + 16); g.lineTo(x + 12, y); g.fill(); } tears(1, false); }
+  if (v === 'scratched') { for (let k = 0; k < 60; k++) { g.strokeStyle = R() < .5 ? 'rgba(240,230,210,.7)' : 'rgba(0,0,0,.6)'; g.lineWidth = 1 + R() * 3; g.beginPath(); const x = 120 + R() * 270, y = 120 + R() * 260; g.moveTo(x, y); g.lineTo(x + (R() - .5) * 160, y + (R() - .5) * 160); g.stroke(); } }
+  if (v === 'burnt') { const gr = g.createRadialGradient(w / 2, w / 2, w * .2, w / 2, w / 2, w * .72); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(.75, 'rgba(255,90,0,.35)'); gr.addColorStop(.85, 'rgba(20,5,0,.95)'); gr.addColorStop(1, '#000'); g.fillStyle = gr; g.fillRect(0, 0, w, w); }
+  g.restore(); portraitTex[v].needsUpdate = true;
+}
+portraitImg.onload = () => PVARIANTS.forEach(drawPortrait);
+portraitImg.src = window.PORTRAIT_PHOTO || 'assets/portrait.jpg';
+const PORTRAIT_TEXTS = [
+  'Han har hängt här sedan museet öppnade. Ingen minns vem som målade honom.',
+  'Vakterna säger att ögonen följer en genom rummet. Vakterna har slutat jobba här.',
+  'Tavlan har tagits ner fyra gånger. Varje morgon hänger den på plats igen.',
+  'Färgen har aldrig torkat. Den är fortfarande blöt när man rör vid den.',
+  'Under duken har konservatorerna hittat en annan duk. Med samma ansikte.',
+  'Det sägs att han var nattvakt här en gång.',
+];
+const portraits = [];
+function portrait(k, side, along, y, v) {
+  const gp = new THREE.Group();
+  const outer = new THREE.Mesh(new THREE.BoxGeometry(1.62, 1.62, .1), M.gold); gp.add(outer);
+  const inner = new THREE.Mesh(new THREE.BoxGeometry(1.42, 1.42, .11), mat(0x1a120a, { roughness: .6 })); gp.add(inner);
+  const pic = new THREE.Mesh(new THREE.PlaneGeometry(1.3, 1.3), mat(0xffffff, { map: portraitTex[v], roughness: .5 })); pic.position.z = .062; gp.add(pic);
+  const R = Math.random;
+  const f = onWall(gp, k, side, along, y, ['Porträtt av en okänd man', 'Olja på duk, år okänt', PORTRAIT_TEXTS[Math.floor(R() * PORTRAIT_TEXTS.length)]], .03);
+  portraits.push({ pic, room: k, pos: f.pos, v });
+  if (v === 'bleeding' || v === 'hollow') for (let i = 0; i < 3; i++) addDrip(k, side, along + (R() - .5) * .9, y - .82, .9 + R() * 1.1, .05 + R() * .07, .09); // blood running out of the frame
+}
+function hangPortraits() {
+  const spots = {
+    entre: [['n', 6.5], ['e', -5], ['e', 5], ['w', -5], ['w', 5], ['s', 5]],
+    konst: [['s', -5], ['s', 0], ['w', -5], ['w', 5], ['e', -5], ['e', 5]],
+    modern: [['n', 5], ['n', -6], ['s', -3], ['e', -5], ['w', -5], ['w', 5]],
+    natur: [['n', -6], ['s', 0], ['s', -6], ['s', 6], ['w', -4], ['w', 4], ['e', -5], ['e', 5]],
+    mineral: [['n', -6], ['n', 6], ['e', -4], ['e', 4], ['w', 0], ['s', -5], ['s', 5]],
+    egypt: [['n', -5], ['n', 5], ['s', -5], ['s', 5], ['w', -5], ['e', 5], ['e', -5]],
+    skatt: [['n', 0], ['n', -6], ['n', 6], ['e', 0], ['w', 0]],
+  };
+  let i = 0;
+  for (const k in spots) for (const [side, along] of spots[k]) portrait(k, side, along, 2.25, i++ % 3 === 0 ? 'normal' : PVARIANTS[1 + Math.floor(Math.random() * (PVARIANTS.length - 1))]);
+}
+// While you are not looking, the portraits in your room change.
+let portraitT = 4;
+function updatePortraits(dt) {
+  portraitT -= dt; if (portraitT > 0 || !S.started) return; portraitT = 3 + Math.random() * 4;
+  const here = portraits.filter(p => p.room === S.room && !litByFlash(p.pos)); if (!here.length) return;
+  const p = here[Math.floor(Math.random() * here.length)]; p.v = Math.random() < .25 ? 'normal' : PVARIANTS[1 + Math.floor(Math.random() * (PVARIANTS.length - 1))]; p.pic.material.map = portraitTex[p.v];
+}
+// ---------- blood running down the walls ----------
+const dripTexs = [0, 1, 2].map(seed => canvasTex(64, 512, (g, w, h) => {
+  const R = rng(seed * 7 + 1); g.clearRect(0, 0, w, h);
+  const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#2a0003'); gr.addColorStop(.85, '#6a0008'); gr.addColorStop(1, '#8a000c'); g.fillStyle = gr;
+  g.beginPath(); g.moveTo(w * .25, 0); let x = w * .3;
+  for (let y = 0; y <= h - 24; y += 16) { x = Math.max(w * .18, Math.min(w * .4, x + (R() - .5) * 6)); g.lineTo(x, y); }
+  g.arc(w / 2, h - 24, w * .26, Math.PI, 0, true); let x2 = w * .7;
+  for (let y = h - 24; y >= 0; y -= 16) { x2 = Math.max(w * .6, Math.min(w * .82, x2 + (R() - .5) * 6)); g.lineTo(x2, y); }
+  g.closePath(); g.fill();
+  g.fillStyle = 'rgba(255,160,160,.25)'; g.fillRect(w * .42, 0, 3, h - 30); // a wet highlight
+}));
+const drips = [];
+function addDrip(k, side, along, top, len, wd, off = .016) {
+  const geo = new THREE.PlaneGeometry(wd, len); geo.translate(0, -len / 2, 0);
+  const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: dripTexs[Math.floor(Math.random() * 3)], transparent: true, roughness: .12, metalness: .15, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3 }));
+  onWall(m, k, side, along, top, null, off); m.scale.y = Math.random();
+  drips.push({ m, v: .04 + Math.random() * .12, wait: 0 });
+}
+function handprint(k, side, along, y) {
+  const t = canvasTex(256, 256, (g, w, h) => { const R = rng(along * 13 + y); g.clearRect(0, 0, w, h); g.fillStyle = 'rgba(90,0,6,.9)'; g.save(); g.translate(128, 150); g.rotate((R() - .5) * .8);
+    g.beginPath(); g.ellipse(0, 0, 42, 52, 0, 0, 7); g.fill();
+    [[-46, -30, -.6, 36], [-24, -78, -.15, 48], [0, -88, 0, 52], [22, -80, .15, 48], [42, -58, .35, 38]].forEach(([x, yy, r, l]) => { g.save(); g.translate(x, yy); g.rotate(r); g.beginPath(); g.ellipse(0, 0, 10, l / 2, 0, 0, 7); g.fill(); g.restore(); });
+    g.fillRect(-36, 40, 72, 60 + R() * 60); g.restore(); });
+  onWall(new THREE.Mesh(new THREE.PlaneGeometry(.55, .55), new THREE.MeshStandardMaterial({ map: t, transparent: true, roughness: .2, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3 })), k, side, along, y, null, .015);
+}
+function bleedWalls() {
+  for (const k in ROOMS) for (const side of ['n', 's', 'w', 'e']) {
+    const len = side === 'n' || side === 's' ? W : D, linked = isLinked(k, neighbor(k, side) || '');
+    for (let i = 0; i < 4; i++) {
+      let along; do { along = (Math.random() - .5) * (len - 1.2); } while (linked && Math.abs(along) < 2.3);
+      addDrip(k, side, along, H - .25, 1.5 + Math.random() * 3.2, .08 + Math.random() * .16);
+    }
+    if (Math.random() < .5) { let along; do { along = (Math.random() - .5) * (len - 2); } while (linked && Math.abs(along) < 2.3); handprint(k, side, along, .9 + Math.random() * 1.2); }
+  }
+}
+function updateDrips(dt) {
+  for (const d of drips) {
+    if (d.m.scale.y < 1) d.m.scale.y = Math.min(1, d.m.scale.y + d.v * dt);
+    else { d.wait += dt; if (d.wait > 8 + Math.random() * 30) { d.wait = 0; d.m.scale.y = .001; d.v = .04 + Math.random() * .12; } }
+  }
+}
+
 // ---------- museum contents ----------
 (function furnish() {
   // Entréhallen
@@ -610,6 +716,8 @@ function bloodWriting(k, side, along, y, text, w = 4) {
   bloodWriting('modern', 'e', 2, 2.6, 'HON STÅR BAKOM DIG', 5);
   bloodWriting('mineral', 'n', 0, 2.6, 'GÅ HEM');
   bloodWriting('konst', 's', 5, 2.4, 'RÄKNA NUNNORNA');
+  hangPortraits();
+  bleedWalls();
   // Skattkammaren
   chest('skatt', -5, -4, ['Kistan', 'Sjörövarbyte, 1600-tal', 'Fylld med mynt från ett dussin länder. Den beslagtogs från en kapten som inte kunde förklara var han fått dem ifrån.']);
   chest('skatt', 5, -4, ['Kistan', 'Okänd ägare', 'Lappen på locket säger: ”Rör ej. Gäller även nattvakter.”']);
@@ -827,7 +935,14 @@ const sfx = {
         o.frequency.setValueAtTime(f * .7, t0); o.frequency.exponentialRampToValueAtTime(f * 1.35, t0 + .28); o.frequency.exponentialRampToValueAtTime(f * .78, t0 + 1.7);
         j.frequency.value = 11 + Math.random() * 14; jg.gain.value = f * .1; j.connect(jg).connect(o.frequency); o.connect(bp); o.start(t0); j.start(t0); o.stop(t0 + 1.8); j.stop(t0 + 1.8); }
     }
-    tone('sine', 4200, 2400, t0, .01, .08, 1.2, out); tone('sine', 70, 28, t0, .005, 1.1, .9, out); hiss(t0, .005, .5, .25, 'lowpass', 400, 0, 1, out); },
+    tone('sine', 4200, 2400, t0, .01, .08, 1.2, out); tone('sine', 70, 28, t0, .005, 1.1, .9, out); hiss(t0, .005, .5, .25, 'lowpass', 400, 0, 1, out);
+    // LOUD: a second path that skips the compressor and is driven into hard clipping
+    const loud = ac.createGain(), clip = shaper(400), lg = ac.createGain(); loud.gain.value = 3; lg.gain.setValueAtTime(.0001, t0); lg.gain.exponentialRampToValueAtTime(.95, t0 + .01); lg.gain.setValueAtTime(.95, t0 + .9); lg.gain.exponentialRampToValueAtTime(.0001, t0 + 2);
+    if (S.sound) env.connect(loud).connect(clip).connect(lg).connect(ac.destination);
+    hiss(t0, .002, 1, .12, 'highpass', 1000, 0, 1, loud); // the crack at the start
+    for (const f of [92, 97]) tone('sawtooth', f, f * .6, t0, .01, .7, 1.6, loud); // a demonic growl underneath
+    for (const f of [2600, 3150]) { const o = tone('square', f, f * 1.3, t0 + .05, .02, .25, 1.4, loud); } // a child's shriek on top
+    if (music.g) { music.g.gain.cancelScheduledValues(t); music.g.gain.setValueAtTime(.12, t); music.g.gain.linearRampToValueAtTime(.9, t + 4); } },
   breath() { if (!A()) return; const t = ac.currentTime, out = wet(.5); hiss(t, .5, .08, .5, 'bandpass', 700, 500, 2.5, out); hiss(t + .9, .1, .06, .7, 'bandpass', 500, 300, 2, out); tone('sawtooth', 70, 60, t + .9, .1, .015, .6, out); },
   bones() { if (!A()) return; const t = ac.currentTime; for (let i = 0; i < 3; i++) hiss(t + i * .025 + Math.random() * .02, .001, .12, .02, 'highpass', 2500 + Math.random() * 2500, 0, 1); },
   flashClick() { if (!A()) return; const t = ac.currentTime; tone('square', 2400, 1800, t, .001, .05, .02); hiss(t, .001, .08, .03, 'highpass', 3000, 0, 1); },
@@ -1082,6 +1197,8 @@ function buildNun() {
   const mouth = addMesh(head, new THREE.SphereGeometry(.024, 10, 8), voidMat, 0, .055, .135); mouth.scale.set(.8, 1.4, .5);
   const eyeMat = new THREE.SpriteMaterial({ map: glowTex, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, opacity: .7 });
   for (const s of [-1, 1]) { const e = new THREE.Sprite(eyeMat); e.position.set(.035 * s, .15, .16); e.scale.setScalar(.07); head.add(e); }
+  const hair = mat(0x050405, { roughness: .9 });
+  for (let i = 0; i < 9; i++) { const s = i < 5 ? -1 : 1, len = .25 + Math.random() * .25; const st = addMesh(head, new THREE.BoxGeometry(.012, len, .006), hair, s * (.05 + Math.random() * .05), .18 - len / 2, .15 + Math.random() * .02); st.rotation.z = s * (.05 + Math.random() * .15); }
   return { g, body, head, neck, mouth, eyeMat, arms };
 }
 function randomPoint(k) { const c = center(k); for (let i = 0; i < 30; i++) { const x = c.x + (Math.random() - .5) * 15, z = c.z + (Math.random() - .5) * 11; if (!blocked(x, z, .4)) return V3(x, 0, z); } return V3(c.x, 0, c.z); }
@@ -1091,6 +1208,12 @@ function doorPoint(k, nb) { const c = center(k); for (const side of ['n', 's', '
   do { p = randomPoint(k); } while (k === 'entre' && p.distanceTo(guard.p.position) < 7);
   n.g.position.copy(p); n.g.rotation.y = Math.random() * 6; n.room = k;
   Object.assign(n, { path: [], wait: Math.random() * 3, speed: .45 + Math.random() * .3, phase: Math.random() * 10, twitch: 0, tilt: 0, cd: 0, scream: 0, jerk: 0, whisperT: 0 });
+  nuns.push(n);
+});
+// three more hang upside down from the ceiling, and drop on you
+['konst', 'natur', 'egypt'].forEach(k => {
+  const n = buildNun(), p = randomPoint(k); n.g.position.set(p.x, H, p.z); n.g.rotation.z = Math.PI; n.room = k; n.ceil = true;
+  Object.assign(n, { path: [], wait: Math.random() * 3, speed: .35, phase: Math.random() * 10, twitch: 0, tilt: 0, cd: 0, scream: 0, jerk: 0, whisperT: 0 });
   nuns.push(n);
 });
 function faceTo(n, target, k) { const want = Math.atan2(target.x - n.g.position.x, target.z - n.g.position.z); n.g.rotation.y += wrap(want - n.g.rotation.y) * Math.min(1, k); }
@@ -1119,7 +1242,13 @@ function updateNuns(dt, t) {
       if (n.scream <= 0) { n.arms.forEach(a => { a.rotation.z = 0; }); n.head.position.y = .9; n.neck.scale.y = .01; n.mouth.scale.set(.8, 1.4, .5); n.body.position.y = 0; n.head.rotation.x = 0; }
       continue;
     }
-    const sameRoom = n.room === S.room, active = S.started && !S.busy, chase = active && sameRoom && d < 9, lit = litByFlash(p);
+    if (n.drop > 0) { // falling from the ceiling
+      n.drop -= dt; const k = 1 - Math.max(0, n.drop) / .35; p.y = H * (1 - k * k); n.g.rotation.z = Math.PI * (1 - k);
+      if (n.drop <= 0) { p.y = 0; n.g.rotation.z = 0; n.ceil = false; sfx.thud(.8); nunScream(n); }
+      continue;
+    }
+    if (n.ceil && S.started && !S.busy && n.room === S.room && d < 1.7 && n.cd <= 0) { n.drop = .35; faceTo(n, pp, 1); continue; }
+    const sameRoom = n.room === S.room, active = S.started && !S.busy, chase = active && sameRoom && d < 9, lit = litByFlash(p) && !n.ceil;
     let moving = false;
     if (chase) {
       n.path = [];
@@ -1130,6 +1259,7 @@ function updateNuns(dt, t) {
       if (!n.path.length) {
         if (Math.random() < .35) { const opts = LINKS.filter(l => l.includes(n.room)).map(l => l[0] === n.room ? l[1] : l[0]).filter(r => r !== 'skatt'); const nb = opts[Math.floor(Math.random() * opts.length)]; n.path = [doorPoint(n.room, nb), doorPoint(nb, n.room), randomPoint(nb)]; }
         else n.path = [randomPoint(n.room)];
+        if (n.ceil) n.path = [randomPoint(n.room)];
         n.wait = Math.random() * 3;
       }
       if (n.wait > 0) n.wait -= dt; else {
@@ -1140,19 +1270,58 @@ function updateNuns(dt, t) {
     // arms reach for you when she hunts; heads twitch; eyes burn brighter up close
     const reach = chase && d < 5 ? -1.45 : 0;
     for (const a of n.arms) a.rotation.x += (reach - a.rotation.x) * Math.min(1, dt * 4);
-    n.body.rotation.z = Math.sin(t * 1.3 + n.phase) * .05; n.g.position.y = moving ? Math.abs(Math.sin(t * 3 + n.phase)) * .025 : 0;
+    n.body.rotation.z = Math.sin(t * 1.3 + n.phase) * .05; n.g.position.y = n.ceil ? H : moving ? Math.abs(Math.sin(t * 3 + n.phase)) * .025 : 0;
     n.twitch -= dt; if (n.twitch < 0) { n.twitch = .8 + Math.random() * 3; n.tilt = (Math.random() - .5) * 1.5; if (Math.random() < .12 && !lit) n.head.rotation.y += Math.PI; }
     const look = (sameRoom && d < 10) || S.dead ? wrap(Math.atan2(pp.x - p.x, pp.z - p.z) - n.g.rotation.y) : 0;
     n.head.rotation.y += (wrap(Math.max(-1.7, Math.min(1.7, look)) - n.head.rotation.y)) * Math.min(1, dt * 5);
     n.head.rotation.z += (n.tilt - n.head.rotation.z) * Math.min(1, dt * 16);
     n.eyeMat.opacity = sameRoom && d < 6 ? .95 : .55;
     if (sameRoom && d < 5 && !S.dead) { n.whisperT -= dt; if (n.whisperT < 0) { n.whisperT = 1.4 + Math.random() * 2.5; sfx.whisper(1 - d / 6); } }
-    if (S.started && !S.busy && d < .75 && n.cd <= 0) nunScream(n);
+    if (sameRoom && d < 6 && !S.dead) maybeSpeak();
+    if (S.started && !S.busy && !n.ceil && d < .75 && n.cd <= 0) nunScream(n);
   }
   S.nearestNun = nearest; S.hunted = hunting;
 }
+// The nuns whisper to you, in Swedish, with the browser's own voice
+const PHRASES = ['Vi ser dig', 'Stanna hos oss', 'Klicka inte', 'Du hör hemma här nu', 'Vänd dig inte om', 'Han väntar på dig', 'Spring'];
+let speakT = 6;
+function maybeSpeak() {
+  if (speakT > 0 || !S.sound || !('speechSynthesis' in window)) return; speakT = 9 + Math.random() * 8;
+  try { const u = new SpeechSynthesisUtterance(PHRASES[Math.floor(Math.random() * PHRASES.length)]); u.lang = 'sv-SE'; u.pitch = .1; u.rate = .6; u.volume = .8;
+    const v = speechSynthesis.getVoices().find(v => v.lang && v.lang.startsWith('sv')); if (v) u.voice = v; speechSynthesis.speak(u); } catch (e) {}
+}
+// ---------- the full-screen jumpscare ----------
+const jumpCanvas = $('jump'), jumpG = jumpCanvas.getContext('2d');
+const screamFace = (() => {
+  const c = document.createElement('canvas'); c.width = 600; c.height = 800; const g = c.getContext('2d'), R = rng(13);
+  g.fillStyle = '#050305'; g.beginPath(); g.ellipse(300, 430, 300, 400, 0, 0, 7); g.fill(); // veil
+  g.fillStyle = '#d6d0c2'; g.beginPath(); g.ellipse(300, 420, 205, 270, 0, 0, 7); g.fill(); // coif
+  const fg = g.createRadialGradient(290, 380, 40, 300, 430, 240); fg.addColorStop(0, '#cfc7b4'); fg.addColorStop(.7, '#8f887a'); fg.addColorStop(1, '#3a3530');
+  g.fillStyle = fg; g.beginPath(); g.ellipse(300, 430, 170, 235, 0, 0, 7); g.fill();
+  g.strokeStyle = 'rgba(40,10,10,.6)'; g.lineWidth = 2; for (let i = 0; i < 40; i++) { g.beginPath(); let x = 160 + R() * 280, y = 240 + R() * 380; g.moveTo(x, y); for (let k = 0; k < 5; k++) { x += (R() - .5) * 50; y += R() * 40; g.lineTo(x, y); } g.stroke(); }
+  for (const s of [-1, 1]) { const ex = 300 + s * 70, ey = 360;
+    const eg = g.createRadialGradient(ex, ey, 5, ex, ey, 70); eg.addColorStop(0, '#000'); eg.addColorStop(.65, 'rgba(0,0,0,.97)'); eg.addColorStop(1, 'rgba(20,0,0,0)'); g.fillStyle = eg; g.beginPath(); g.ellipse(ex, ey, 70, 58, s * .15, 0, 7); g.fill();
+    const pg = g.createRadialGradient(ex, ey, 0, ex, ey, 16); pg.addColorStop(0, '#fff2c0'); pg.addColorStop(.3, '#ff2010'); pg.addColorStop(1, 'rgba(255,0,0,0)'); g.fillStyle = pg; g.beginPath(); g.arc(ex, ey, 16, 0, 7); g.fill();
+    g.fillStyle = '#6a0006'; for (let k = 0; k < 4; k++) { const x = ex - 30 + k * 18 + (R() - .5) * 8, l = 120 + R() * 260; g.fillRect(x, ey + 34, 5 + R() * 4, l); g.beginPath(); g.arc(x + 4, ey + 34 + l, 6, 0, 7); g.fill(); } }
+  const mg = g.createLinearGradient(0, 470, 0, 760); mg.addColorStop(0, '#000'); mg.addColorStop(1, '#2a0000'); g.fillStyle = mg; g.beginPath(); g.ellipse(300, 600, 85, 165, 0, 0, 7); g.fill();
+  g.strokeStyle = '#1a0000'; g.lineWidth = 6; g.beginPath(); g.moveTo(215, 590); g.quadraticCurveTo(140, 540, 120, 450); g.moveTo(385, 590); g.quadraticCurveTo(460, 540, 480, 450); g.stroke();
+  g.fillStyle = '#ddd2b4'; for (let k = 0; k < 9; k++) { const x = 232 + k * 15; g.beginPath(); g.moveTo(x, 450); g.lineTo(x + 7, 490 + R() * 20); g.lineTo(x + 14, 452); g.fill(); g.beginPath(); g.moveTo(x, 755); g.lineTo(x + 7, 715 - R() * 20); g.lineTo(x + 14, 753); g.fill(); }
+  g.strokeStyle = '#030203'; g.lineWidth = 4; for (let i = 0; i < 40; i++) { const s = i % 2 ? -1 : 1, x = 300 + s * (110 + R() * 90); g.beginPath(); g.moveTo(x, 200); g.bezierCurveTo(x + s * 10, 400, x - s * 20, 600, x + s * (R() * 40), 760 + R() * 40); g.stroke(); }
+  const red = document.createElement('canvas'); red.width = 600; red.height = 800; const rg = red.getContext('2d'); rg.drawImage(c, 0, 0); rg.globalCompositeOperation = 'source-atop'; rg.fillStyle = 'rgba(255,0,0,.75)'; rg.fillRect(0, 0, 600, 800);
+  return { c, red };
+})();
+function drawJump(t) {
+  const W2 = jumpCanvas.width = innerWidth >> 1, H2 = jumpCanvas.height = innerHeight >> 1, g = jumpG, k = 1.15 - t;
+  g.fillStyle = `rgba(0,0,0,${Math.min(.8, k * 6)})`; g.fillRect(0, 0, W2, H2);
+  const sc = (H2 / 800) * (1.05 + k * .9) * (1 + (Math.random() - .5) * .06), w = 600 * sc, h = 800 * sc, sx = (Math.random() - .5) * 60, sy = (Math.random() - .5) * 60;
+  g.globalAlpha = t < .25 ? t / .25 : 1;
+  g.drawImage(screamFace.red, W2 / 2 - w / 2 + sx + 14, H2 / 2 - h / 2 + sy + 4, w, h);
+  g.drawImage(screamFace.c, W2 / 2 - w / 2 + sx, H2 / 2 - h / 2 + sy, w, h);
+  g.fillStyle = 'rgba(0,0,0,.35)'; for (let y = Math.random() * 6; y < H2; y += 6) g.fillRect(0, y, W2, 2);
+  g.globalAlpha = 1;
+}
 function nunScream(n) {
-  n.scream = 1.4; n.cd = 3.5; sfx.nunScream(); S.shake = 1.4; S.jump = { n, t: .95 };
+  n.scream = 1.4; n.cd = 3.5; sfx.nunScream(); S.shake = 2; S.jump = { n, t: 1.15 }; jumpCanvas.style.display = 'block';
   const el = $('scare'); el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
   const pp = guard.p.position, dx = pp.x - n.g.position.x, dz = pp.z - n.g.position.z, l = Math.hypot(dx, dz) || 1;
   for (let i = 0; i < 10; i++) { const nx = pp.x + dx / l * .14, nz = pp.z + dz / l * .14; if (!blocked(nx, pp.z)) pp.x = nx; if (!blocked(pp.x, nz)) pp.z = nz; }
@@ -1161,7 +1330,7 @@ function nunScream(n) {
 function sneakNun() {
   const pp = guard.p.position, bx = pp.x + Math.sin(S.yaw) * 2.4, bz = pp.z + Math.cos(S.yaw) * 2.4;
   if (blocked(bx, bz, .4) || roomAt(bx, bz) !== S.room) return;
-  let best = null, bd = 1e9; for (const n of nuns) { const d = n.g.position.distanceTo(pp); if (n.scream <= 0 && d < bd && d > 4) { bd = d; best = n; } }
+  let best = null, bd = 1e9; for (const n of nuns) { const d = n.g.position.distanceTo(pp); if (!n.ceil && n.scream <= 0 && d < bd && d > 4) { bd = d; best = n; } }
   if (!best) return; best.g.position.set(bx, 0, bz); best.path = []; best.jerk = 1.2; faceTo(best, pp, 1); best.cd = 0;
 }
 const grain = $('grain'), grainG = grain.getContext('2d'), grainImg = grainG.createImageData(grain.width, grain.height);
@@ -1231,7 +1400,8 @@ function tick() {
   if (S.pool) { S.pool = Math.min(1.6, S.pool + dt * .3); pool.scale.setScalar(S.pool); }
   updateBlood(dt);
   updateNuns(dt, t); updateScares(dt); updateDust(dt, t);
-  if (S.jump) { S.jump.t -= dt; if (S.jump.t <= 0) S.jump = null; }
+  if (S.jump) { S.jump.t -= dt; if (S.jump.t <= 0) { S.jump = null; jumpCanvas.style.display = 'none'; } else drawJump(S.jump.t); }
+  speakT -= dt; updateDrips(dt); updatePortraits(dt);
   guard.beam.lookAt(guard.spot.target.getWorldPosition(tmpV));
   grainT -= dt; if (grainT < 0) { grainT = .07; updateGrain(); }
   for (const f of anims) f(dt, t);
