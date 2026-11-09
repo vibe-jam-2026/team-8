@@ -2,138 +2,123 @@
 <html lang="sv">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Museum Aurora 3D</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Museum Aurora</title>
 <style>
-:root{--bg:#0b0a10;--ink:#f3ecdf;--mut:#b9b0a0;--gold:#f2c14e;--panel:rgba(26,23,34,.86);--line:#3a3545;--paper:#f4ecd8;--paperInk:#2b2620;--red:#ff5a5f}
+:root{--ink:#f3ecdf;--mut:#b9b0a0;--gold:#f2c14e;--panel:rgba(26,23,32,.82);--line:#3a3545;--paper:#f4ecd8;--paperInk:#2b2620}
 *{box-sizing:border-box}
-html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
-#c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
-.hud{position:fixed;left:0;right:0;top:0;display:flex;align-items:flex-start;justify-content:space-between;gap:10px 16px;padding:14px 16px;flex-wrap:wrap;pointer-events:none;z-index:5;background:linear-gradient(rgba(0,0,0,.55),transparent)}
-.hud > *{pointer-events:auto}
-.room-name{font:600 22px/1.2 Georgia,"Times New Roman",serif;text-shadow:0 2px 8px rgba(0,0,0,.6)}
-.room-name small{display:block;font:400 11px/1.6 system-ui,sans-serif;color:var(--mut);letter-spacing:.16em;text-transform:uppercase}
-.stats{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.pill{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:5px 12px;font-size:14px;display:flex;align-items:center;gap:6px;font-variant-numeric:tabular-nums}
+html,body{margin:0;height:100%;overflow:hidden;background:#040306;color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+#c:active{cursor:grabbing}
+#hud{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:12px 16px;pointer-events:none;flex-wrap:wrap}
+.room{font:600 22px/1.2 Georgia,serif;text-shadow:0 2px 8px #000}
+.room small{display:block;font:400 11px/1.6 system-ui,sans-serif;color:var(--mut);letter-spacing:.16em;text-transform:uppercase}
+.stats{display:flex;gap:8px;align-items:center;pointer-events:auto}
+.pill{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:5px 12px;font-size:14px;font-variant-numeric:tabular-nums}
 .pill b{color:var(--gold)}
 button{font:inherit;font-size:14px;color:inherit;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:5px 14px;cursor:pointer}
 button:hover,button:focus-visible{border-color:var(--gold);outline:none}
-button:disabled{opacity:.6;cursor:wait}
 button.primary{background:var(--gold);color:#2a2112;border-color:var(--gold);font-weight:600;padding:10px 24px;font-size:16px}
-button.primary:hover{filter:brightness(1.08)}
-#prompt{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:8px 18px;font-size:15px;z-index:5;white-space:nowrap;opacity:0;transition:opacity .15s;pointer-events:none;max-width:calc(100% - 32px);overflow:hidden;text-overflow:ellipsis}
-#prompt.show{opacity:1}
-#prompt kbd{display:inline-block;background:var(--gold);color:#2a2112;border-radius:5px;padding:0 7px;font:700 13px/20px system-ui,sans-serif;margin-right:8px}
-#prompt.danger{border-color:var(--red);color:#ffd6d6}
-#prompt.danger kbd{background:var(--red);color:#fff}
-#toast{position:fixed;left:50%;top:76px;transform:translateX(-50%);font:600 24px/1.2 Georgia,serif;letter-spacing:.02em;text-shadow:0 3px 18px rgba(0,0,0,.8);opacity:0;transition:opacity .5s;pointer-events:none;z-index:4;text-align:center;white-space:nowrap}
-#toast small{display:block;font:400 12px/2 system-ui,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:var(--gold)}
-#toast.show{opacity:1}
-#redFlash{position:fixed;inset:0;background:#c1121f;opacity:0;pointer-events:none;mix-blend-mode:multiply;z-index:2}
-#redFlash.on{animation:alarm .45s ease-in-out infinite alternate}
-@keyframes alarm{from{opacity:0}to{opacity:.5}}
-.plaque{position:fixed;left:16px;top:96px;transform:translateX(-12px);width:min(330px,calc(100% - 32px));background:rgba(244,236,216,.78);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);color:var(--paperInk);border-radius:8px;padding:12px 16px 8px;box-shadow:0 10px 30px rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:6;border-left:4px solid #b8913f}
-.plaque.show{opacity:1;transform:none;pointer-events:auto}
-.plaque h3{margin:0 0 2px;font:600 17px/1.25 Georgia,serif}
-.plaque .meta{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#6b604e;margin-bottom:6px}
-.plaque p{margin:0 0 6px;font-size:14px;line-height:1.45}
-.plaque .close{float:right;background:transparent;border:1px solid #cdbf9f;color:var(--paperInk);font-size:13px;padding:3px 10px;margin:-4px -6px 0 8px}
-.overlay{position:fixed;inset:0;background:rgba(10,8,14,.72);display:flex;align-items:center;justify-content:center;padding:16px;z-index:10;backdrop-filter:blur(4px)}
-.overlay[hidden]{display:none}
-.card{background:#1d1a26;border:1px solid var(--line);border-radius:14px;max-width:540px;width:100%;padding:28px 26px;text-align:center;box-shadow:0 30px 80px rgba(0,0,0,.6);max-height:calc(100vh - 32px);overflow:auto}
-.card h1,.card h2{font:600 32px/1.15 Georgia,serif;margin:6px 0 12px}
-.card h2{font-size:24px}
+#help{position:fixed;left:16px;bottom:12px;font-size:13px;color:var(--mut);text-shadow:0 1px 4px #000}
+#help a{color:var(--mut)}
+#prompt{position:fixed;left:50%;bottom:64px;transform:translateX(-50%);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:8px 18px;font-size:15px;cursor:pointer;white-space:nowrap;max-width:calc(100% - 32px);overflow:hidden;text-overflow:ellipsis}
+#prompt.danger{border-color:#c1121f;color:#ff7a7f}
+kbd{display:inline-block;background:var(--gold);color:#2a2112;border-radius:5px;padding:0 7px;font:600 13px/1.6 system-ui;margin-right:4px}
+#sub{position:fixed;left:50%;top:22%;transform:translateX(-50%);font:italic 22px/1.3 Georgia,serif;text-align:center;text-shadow:0 2px 10px #000;opacity:0;transition:opacity .4s;pointer-events:none;width:calc(100% - 32px)}
+#sub.on{opacity:1}
+#plaque{position:fixed;left:50%;top:70px;transform:translateX(-50%);width:min(520px,calc(100% - 32px));background:var(--paper);color:var(--paperInk);border-radius:8px;padding:16px 20px 12px;box-shadow:0 16px 50px rgba(0,0,0,.6);border-top:4px solid #b8913f;z-index:5}
+#plaque h3{margin:0 0 2px;font:600 20px/1.25 Georgia,serif}
+#plaque .meta{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#7b6f5c;margin-bottom:8px}
+#plaque p{margin:0 0 6px;font-size:15px}
+#plaqueClose{float:right;background:transparent;border:1px solid #cdbf9f;color:var(--paperInk);font-size:13px;padding:3px 10px;margin:-4px -6px 0 8px}
+#dark{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,.55) 100%)}
+#grain{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;opacity:.045;mix-blend-mode:screen;image-rendering:pixelated}
+#jump{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;display:none;z-index:8;image-rendering:auto}
+#scare{position:fixed;inset:0;pointer-events:none;opacity:0;background:radial-gradient(circle,rgba(255,255,255,.9),rgba(180,0,0,.75) 70%)}
+#scare.on{animation:scare .7s ease-out}
+@keyframes scare{0%{opacity:.85}100%{opacity:0}}
+/* blood on the screen */
+#vignette{position:fixed;inset:0;pointer-events:none;opacity:0;background:radial-gradient(ellipse at center,transparent 45%,rgba(120,0,0,.75) 100%);transition:opacity .2s}
+#vignette.on{opacity:1;animation:pulse 1.1s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.6}}
+#splat{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+#splat i{position:absolute;border-radius:48% 52% 45% 55%/55% 45% 55% 45%;background:radial-gradient(circle at 42% 40%,rgba(160,0,8,.95),rgba(105,0,4,.92) 55%,rgba(70,0,0,0) 71%);opacity:0;animation:splat .12s ease-out forwards,fade 9s 2s linear forwards}
+#splat b{position:absolute;width:9px;border-radius:0 0 6px 6px;background:linear-gradient(rgba(130,0,6,.95),rgba(90,0,4,.9));transform-origin:top;transform:scaleY(0);animation:drip 4s ease-in forwards}
+@keyframes splat{from{opacity:0;transform:scale(.3)}to{opacity:1;transform:scale(1)}}
+@keyframes fade{to{opacity:.55}}
+@keyframes drip{to{transform:scaleY(1) translateY(30vh)}}
+/* touch */
+#joy{position:fixed;width:110px;height:110px;margin:-55px 0 0 -55px;border-radius:50%;border:2px solid rgba(255,255,255,.3);background:rgba(255,255,255,.06);pointer-events:none}
+#knob{position:absolute;left:50%;top:50%;width:46px;height:46px;border-radius:50%;background:rgba(242,193,78,.7);transform:translate(-50%,-50%)}
+#flashBtn{position:fixed;right:16px;bottom:16px;font-size:15px;padding:8px 14px}
+#flashBtn.on{background:var(--gold);color:#2a2112;border-color:var(--gold)}
+#useBtn{position:fixed;right:20px;bottom:110px;width:76px;height:76px;border-radius:50%;background:var(--gold);color:#2a2112;font-weight:700;border:0}
+.overlay{position:fixed;inset:0;background:rgba(6,4,10,.8);display:flex;align-items:center;justify-content:center;padding:16px;z-index:10;backdrop-filter:blur(3px)}
+.overlay[hidden],[hidden]{display:none!important}
+.card{background:#1d1a24;border:1px solid var(--line);border-radius:14px;max-width:520px;width:100%;padding:28px 26px;text-align:center;box-shadow:0 30px 80px rgba(0,0,0,.6);max-height:calc(100vh - 32px);overflow:auto}
+.card h1{font:600 32px/1.15 Georgia,serif;margin:6px 0 12px}
 .card .kicker{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold)}
 .card p{color:#d9d0c1;margin:0 0 14px}
-.keys{display:grid;grid-template-columns:auto 1fr;gap:8px 14px;text-align:left;margin:4px auto 22px;max-width:400px;color:#d9d0c1;font-size:15px;align-items:center}
-.keys kbd{background:#2e2a3a;border:1px solid #4a4458;border-bottom-width:3px;border-radius:6px;padding:1px 8px;font:600 13px/22px system-ui,sans-serif;color:var(--ink);white-space:nowrap}
+.card ul{text-align:left;color:#d9d0c1;margin:0 0 20px;padding-left:20px}
+.card li{margin:4px 0}
 .card.danger{border-color:#c1121f}
-.card.danger .kicker{color:var(--red)}
-.card.danger h1{color:var(--red);letter-spacing:.04em}
-#loading{font-size:13px;color:var(--mut);margin-top:12px;min-height:20px}
-.mapgrid{position:relative;margin:8px auto 18px;width:100%;max-width:400px;aspect-ratio:4/3}
-.mapcell{position:absolute;width:23%;height:30%;border-radius:8px;border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-size:12px;line-height:1.2;padding:4px;background:#15131c;color:#6b6476}
-.mapcell.seen{background:#3a3346;color:var(--ink)}
-.mapcell.here{background:var(--gold);color:#2a2112;font-weight:600;border-color:var(--gold)}
-.mapcell .s{display:block;font-size:11px;opacity:.85}
-.mapline{position:absolute;background:var(--line)}
-.foot{position:fixed;right:12px;bottom:8px;font-size:12px;color:var(--mut);z-index:5}
-.foot a{color:var(--mut)}
-#touch{display:none}
-@media (pointer:coarse){
-  #touch{display:block}
-  #stick{position:fixed;left:24px;bottom:28px;width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.2);z-index:6;touch-action:none}
-  #nub{position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px;border-radius:50%;background:rgba(242,193,78,.65)}
-  #useBtn{position:fixed;right:28px;bottom:44px;width:76px;height:76px;border-radius:50%;font:700 22px/1 system-ui,sans-serif;background:rgba(242,193,78,.85);color:#2a2112;border:none;z-index:6;touch-action:none}
-  #prompt{bottom:180px}
-  .foot{display:none}
-}
-@media (max-width:600px){.room-name{font-size:18px}.card{padding:22px 18px}.card h1{font-size:26px}#toast{font-size:20px;top:110px}.plaque{top:120px}}
-@media (prefers-reduced-motion:reduce){#redFlash.on{animation:none;opacity:.3}}
+.card.danger .kicker,.card.danger h1{color:#ff4d55}
+.card.danger h1{font-size:44px;letter-spacing:.06em}
+#noscript{position:fixed;inset:0;display:grid;place-items:center;text-align:center;padding:16px}
+@media (max-width:600px){.room{font-size:17px}#help{display:none}}
 </style>
 </head>
 <body>
-<canvas id="c" tabindex="0"></canvas>
-<div id="redFlash"></div>
-
-<header class="hud">
-  <div class="room-name"><small id="roomSub">Museum Aurora</small><span id="roomTitle">Entréhallen</span></div>
+<canvas id="c"></canvas>
+<div id="hud">
+  <div class="room"><small id="roomSub">Bottenvåningen</small><span id="roomName">Entréhallen</span></div>
   <div class="stats">
-    <span class="pill" title="Hittade guldstjärnor">★ <b id="starCount">0</b>/<span id="starTotal">7</span></span>
+    <span class="pill" title="Guldstjärnor">★ <b id="stars">0</b>/6</span>
     <span class="pill" title="Tid">⏱ <span id="timer">0:00</span></span>
-    <button id="mapBtn" type="button">Karta (M)</button>
     <button id="soundBtn" type="button" aria-pressed="true">Ljud på</button>
   </div>
-</header>
-
-<div id="toast"></div>
-<div id="prompt"></div>
-
-<div class="plaque" id="plaque" role="dialog" aria-live="polite">
-  <button class="close" id="plaqueClose" type="button">Stäng</button>
-  <h3 id="plaqueTitle"></h3>
-  <div class="meta" id="plaqueMeta"></div>
-  <p id="plaqueText"></p>
 </div>
-
-<div id="touch"><div id="stick"><div id="nub"></div></div><button id="useBtn" type="button">E</button></div>
+<div id="dark"></div>
+<canvas id="grain" width="160" height="90"></canvas>
+<div id="scare"></div>
+<canvas id="jump"></canvas>
+<div id="vignette"></div>
+<div id="splat"></div>
+<div id="sub"></div>
+<div id="prompt" hidden></div>
+<div id="plaque" hidden role="dialog" aria-live="polite">
+  <button id="plaqueClose" type="button">Stäng</button>
+  <h3 id="pTitle"></h3><div class="meta" id="pMeta"></div><p id="pText"></p>
+</div>
+<div id="joy" hidden><div id="knob"></div></div>
+<button id="useBtn" type="button" hidden>Använd</button>
+<button id="flashBtn" type="button" title="Ficklampa (F)">🔦 F</button>
+<p id="help">W/S eller ↑/↓: gå · A/D eller ←/→: sväng · Shift: spring · F: ficklampa · Dra med musen: titta · E: använd · <a href="museum-team.html">Lagets version</a> · <a href="instructions.html">Instruktioner för laget</a></p>
 
 <div class="overlay" id="intro">
   <div class="card">
     <div class="kicker">Nattskift</div>
     <h1>Museum Aurora</h1>
-    <p>Du är nattvakt. Någon har gömt <b>sju guldstjärnor</b> i museets salar, och bara när alla är hittade öppnas valvet till skattkammaren.</p>
-    <p>Men i valvet väntar <b>Valvgorillan Bruno</b>. Slå honom knockout genom att trycka <b>W, A, S eller D</b> exakt när ringen når tangenten.</p>
-    <div class="keys">
-      <span><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd></span><span>Gå</span>
-      <span><kbd>Shift</kbd></span><span>Spring</span>
-      <span><kbd>Mus</kbd></span><span>Titta runt (klicka i spelet för att låsa musen, Esc släpper)</span>
-      <span><kbd>E</kbd></span><span>Läs skylten / använd</span>
-      <span><kbd>M</kbd></span><span>Karta</span>
-    </div>
-    <button class="primary" id="startBtn" type="button" disabled>Laddar…</button>
-    <div id="loading"></div>
+    <p>Du är nattvakt. Lamporna fladdrar, något i Naturhistoria följer dig med blicken, och små nunnor vandrar runt i salarna. Någon har gömt <b>sex guldstjärnor</b> i salarna, och bara när alla är hittade öppnas valvet till skattkammaren.</p>
+    <ul>
+      <li><b>W/S</b> eller <b>↑/↓</b> för att gå, <b>A/D</b> eller <b>←/→</b> för att svänga. <b>Shift</b> för att springa.</li>
+      <li><b>F</b> tänder och släcker ficklampan. Det är helt mörkt i museet.</li>
+      <li>Dra med musen för att titta runt.</li>
+      <li><b>E</b> för att läsa skyltar och använda saker.</li>
+      <li>På mobil: dra på vänster halva för att gå, höger halva för att titta.</li>
+      <li><b>Akta dig för nunnorna.</b> De rör sig bara när ljuset inte är på dem. Gå inte in i dem. Och titta upp ibland.</li>
+    </ul>
+    <button class="primary" id="startBtn" type="button">Börja ronden</button>
   </div>
 </div>
-
-<div class="overlay" id="mapOverlay" hidden>
-  <div class="card">
-    <div class="kicker">Planritning</div>
-    <h2>Karta</h2>
-    <div class="mapgrid" id="mapGrid"></div>
-    <button id="mapClose" type="button">Stäng</button>
-  </div>
-</div>
-
 <div class="overlay" id="gameover" hidden>
   <div class="card danger">
     <div class="kicker">Du tryckte på knappen</div>
     <h1>GAME OVER</h1>
-    <p>Det stod tydligt att du inte skulle trycka. Aurorasaurus borealis fick ett nytt huvud och bet av ditt.</p>
+    <p>Det stod tydligt KLICKA INTE. Aurorasaurus borealis fick ett nytt ansikte och tog ditt huvud.</p>
     <button class="primary" id="retryBtn" type="button">Försök igen</button>
   </div>
 </div>
-
 <div class="overlay" id="win" hidden>
   <div class="card">
     <div class="kicker">Ronden klar</div>
@@ -143,8 +128,13 @@ button.primary:hover{filter:brightness(1.08)}
   </div>
 </div>
 
-<div class="foot"><a href="index-2d.html">2D-versionen</a> · <a href="instructions.html">Instruktioner för laget</a></div>
-
-<script type="module" src="game.js"></script>
+<script src="lib/three.min.js"></script>
+<script>if (!window.THREE) document.write('<script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"><\/script>');</script>
+<script src="assets/dino-head.js"></script>
+<script src="assets/portrait.js"></script>
+<script>
+if (!window.THREE) document.getElementById('intro').innerHTML = '<div class="card"><h1>Kunde inte starta</h1><p>3D-motorn (lib/three.min.js) gick inte att ladda.</p></div>';
+</script>
+<script src="game.js"></script>
 </body>
 </html>
