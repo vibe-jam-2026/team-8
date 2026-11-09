@@ -31,8 +31,8 @@ kbd{display:inline-block;background:var(--gold);color:#2a2112;border-radius:5px;
 #plaque .meta{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#7b6f5c;margin-bottom:8px}
 #plaque p{margin:0 0 6px;font-size:15px}
 #plaqueClose{float:right;background:transparent;border:1px solid #cdbf9f;color:var(--paperInk);font-size:13px;padding:3px 10px;margin:-4px -6px 0 8px}
-#dark{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 40%,rgba(0,0,0,.7) 100%)}
-#grain{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;opacity:.07;mix-blend-mode:screen;image-rendering:pixelated}
+#dark{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,.55) 100%)}
+#grain{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;opacity:.045;mix-blend-mode:screen;image-rendering:pixelated}
 #scare{position:fixed;inset:0;pointer-events:none;opacity:0;background:radial-gradient(circle,rgba(255,255,255,.9),rgba(180,0,0,.75) 70%)}
 #scare.on{animation:scare .7s ease-out}
 @keyframes scare{0%{opacity:.85}100%{opacity:0}}
@@ -49,6 +49,8 @@ kbd{display:inline-block;background:var(--gold);color:#2a2112;border-radius:5px;
 /* touch */
 #joy{position:fixed;width:110px;height:110px;margin:-55px 0 0 -55px;border-radius:50%;border:2px solid rgba(255,255,255,.3);background:rgba(255,255,255,.06);pointer-events:none}
 #knob{position:absolute;left:50%;top:50%;width:46px;height:46px;border-radius:50%;background:rgba(242,193,78,.7);transform:translate(-50%,-50%)}
+#flashBtn{position:fixed;right:16px;bottom:16px;font-size:15px;padding:8px 14px}
+#flashBtn.on{background:var(--gold);color:#2a2112;border-color:var(--gold)}
 #useBtn{position:fixed;right:20px;bottom:110px;width:76px;height:76px;border-radius:50%;background:var(--gold);color:#2a2112;font-weight:700;border:0}
 .overlay{position:fixed;inset:0;background:rgba(6,4,10,.8);display:flex;align-items:center;justify-content:center;padding:16px;z-index:10;backdrop-filter:blur(3px)}
 .overlay[hidden],[hidden]{display:none!important}
@@ -88,7 +90,8 @@ kbd{display:inline-block;background:var(--gold);color:#2a2112;border-radius:5px;
 </div>
 <div id="joy" hidden><div id="knob"></div></div>
 <button id="useBtn" type="button" hidden>Använd</button>
-<p id="help">W/S eller ↑/↓: gå · A/D eller ←/→: sväng · Shift: spring · Dra med musen: titta · E: använd · <a href="instructions.html">Instruktioner för laget</a></p>
+<button id="flashBtn" type="button" title="Ficklampa (F)">🔦 F</button>
+<p id="help">W/S eller ↑/↓: gå · A/D eller ←/→: sväng · Shift: spring · F: ficklampa · Dra med musen: titta · E: använd · <a href="instructions.html">Instruktioner för laget</a></p>
 
 <div class="overlay" id="intro">
   <div class="card">
@@ -97,10 +100,11 @@ kbd{display:inline-block;background:var(--gold);color:#2a2112;border-radius:5px;
     <p>Du är nattvakt. Lamporna fladdrar, något i Naturhistoria följer dig med blicken, och små nunnor vandrar runt i salarna. Någon har gömt <b>sex guldstjärnor</b> i salarna, och bara när alla är hittade öppnas valvet till skattkammaren.</p>
     <ul>
       <li><b>W/S</b> eller <b>↑/↓</b> för att gå, <b>A/D</b> eller <b>←/→</b> för att svänga. <b>Shift</b> för att springa.</li>
+      <li><b>F</b> tänder och släcker ficklampan. Det är helt mörkt i museet.</li>
       <li>Dra med musen för att titta runt.</li>
       <li><b>E</b> för att läsa skyltar och använda saker.</li>
       <li>På mobil: dra på vänster halva för att gå, höger halva för att titta.</li>
-      <li><b>Akta dig för nunnorna.</b> Gå inte in i dem.</li>
+      <li><b>Akta dig för nunnorna.</b> De rör sig bara när ljuset inte är på dem. Gå inte in i dem.</li>
     </ul>
     <button class="primary" id="startBtn" type="button">Börja ronden</button>
   </div>
