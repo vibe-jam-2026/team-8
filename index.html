@@ -1,45 +1,98 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Team 8 · Claude Code exercise</title><style>
-:root { --y: #FFB838; --ink: #34322E; --mut: #6b675f; --line: #e6e2da; }
-* { box-sizing: border-box; }
-body { margin: 0; font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); background: #fff; }
-header { background: var(--y); padding: 32px 0 24px; }
-.wrap { max-width: 980px; margin: 0 auto; padding: 0 24px; }
-header .k { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; opacity: .7; }
-header h1 { margin: 6px 0 14px; font-size: 40px; font-weight: 500; }
-header .where { display: flex; flex-wrap: wrap; gap: 8px 24px; font-size: 15px; }
-header a { color: inherit; font-weight: 600; }
-main { max-width: 980px; margin: 0 auto; padding: 8px 24px 64px; }
-h2.part { font-size: 28px; font-weight: 500; margin: 40px 0 8px; padding-top: 24px; border-top: 4px solid var(--y); }
-h2 { font-size: 19px; margin: 28px 0 8px; }
-h3 { font-size: 16px; margin: 0 0 6px; }
-.task { font-size: 20px; }
-.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 40px; }
-@media (max-width: 760px) { .cols { grid-template-columns: 1fr; } header h1 { font-size: 30px; } }
-ul, ol { padding-left: 22px; } li { margin: 4px 0; }
-table { border-collapse: collapse; width: 100%; font-size: 15px; }
-td, th { text-align: left; padding: 7px 10px 7px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
-td:first-child { white-space: nowrap; }
-.demo { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-.demo div { background: #f6f4ef; border-radius: 8px; padding: 14px 16px; }
-.demo b { display: block; font-size: 22px; }
-.card { background: #f6f4ef; border-radius: 8px; padding: 14px 16px; }
-footer { color: var(--mut); font-size: 14px; margin-top: 48px; }</style></head><body>
-<header><div class="wrap"><div class="k">Claude Code exercise · Saab · 9–10 November 2026</div><h1>Team 8</h1>
-<div class="where"><span>Repo: <a href="https://github.com/vibe-jam-2026/team-8">github.com/vibe-jam-2026/team-8</a></span><span>Address: <a href="https://vibe-jam-2026.github.io/team-8/">vibe-jam-2026.github.io/team-8</a></span><span>Build at: <a href="https://claude.ai/code">claude.ai/code</a></span></div></div></header>
-<main>
-  <h2 class="part">Your repo and how to publish</h2>
-  <p>Your repo is <a href="https://github.com/vibe-jam-2026/team-8"><b>github.com/vibe-jam-2026/team-8</b></a> and what you build is published at <a href="https://vibe-jam-2026.github.io/team-8/"><b>vibe-jam-2026.github.io/team-8</b></a>. You are reading this page there now: what you build replaces it. These instructions stay at <a href="instructions.html">vibe-jam-2026.github.io/team-8/instructions.html</a>.</p>
-  
-  <h2>How to publish</h2>
-  <ol>
-    <li>Open <b>claude.ai/code</b> in the browser and log in with <b>team8@rawe.se</b>. Adrian gives you the login code in the room. Accept the invitation to <b>VibeJam2026</b> when it shows.</li>
-    <li>One person in the team clicks <b>Sign in with GitHub</b> and approves with their own GitHub account. That person must have accepted the invitation to the team's repo, or Claude cannot push. Then pick the repo <b>vibe-jam-2026/team-8</b>.</li>
-    <li>The team shares one Claude login. Agree on who steers and when. Do not change its password or settings.</li>
-    <li>Your page starts from <b>index.html</b> at the top of the repo. Everything the browser needs must be in the repo as static files: HTML, JavaScript, CSS, images and sound.</li>
-    <li>Claude pushes its work to a branch of its own. Publish by asking it to open a pull request, then click <b>Merge</b> on github.com, so the change lands in <b>main</b>.</li>
-    <li>GitHub Pages publishes every change to main by itself. About a minute later the new version is live at your address.</li>
-    <li>Built with a tool such as Vite? Put the finished files at the top of the repo or in <b>docs/</b>. docs/ is picked up by itself when there is no index.html at the top. Use relative paths, because your site lives under /team-8/.</li>
-  </ol>
-  
-<footer>Questions during the exercise: ask Adrian.</footer></main></body></html>
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SAAB-museet</title>
+<style>
+  :root { --y: #FFB838; --navy: #0d1f3a; --red: #ff3b3b; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0e1014; color: #fff;
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  #app canvas { display: block; }
+
+  #overlay { position: fixed; inset: 0; display: grid; place-items: center; cursor: pointer;
+    background: radial-gradient(ellipse at center, rgba(13,31,58,.72), rgba(5,8,14,.94)); transition: opacity .3s; }
+  #overlay.hidden { opacity: 0; pointer-events: none; }
+  .card { text-align: center; max-width: 560px; padding: 24px; }
+  .kicker { letter-spacing: .3em; font-size: 12px; text-transform: uppercase; color: var(--y); }
+  h1 { font-size: clamp(40px, 8vw, 72px); margin: 8px 0 4px; font-weight: 800; letter-spacing: .02em; }
+  .cta { display: inline-block; margin: 22px 0 18px; padding: 12px 26px; border-radius: 999px;
+    background: var(--y); color: #1a1a1a; font-weight: 700; }
+  .keys { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 18px; color: #c4cbd6; font-size: 14px; }
+  kbd { display: inline-block; min-width: 26px; padding: 1px 7px; border-radius: 5px; border: 1px solid #5a6578;
+    border-bottom-width: 3px; background: #1a2230; color: #fff; font: 600 13px/1.6 inherit; text-align: center; }
+  #gpu { margin-top: 18px; font-size: 12px; color: #7d8899; }
+
+  #crosshair { position: fixed; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px;
+    border-radius: 50%; background: rgba(255,255,255,.85); box-shadow: 0 0 6px rgba(0,0,0,.6); pointer-events: none; }
+  #prompt { position: fixed; left: 50%; top: calc(50% + 36px); transform: translateX(-50%); pointer-events: none;
+    padding: 8px 14px; border-radius: 8px; background: rgba(0,0,0,.55); font-weight: 600; }
+  #prompt kbd { margin-right: 6px; }
+  #fps { position: fixed; right: 12px; top: 10px; font: 12px ui-monospace, monospace; color: rgba(255,255,255,.55); pointer-events: none; }
+
+  #alert { position: fixed; left: 0; right: 0; top: 14%; text-align: center; pointer-events: none;
+    font-weight: 900; font-size: clamp(18px, 3.4vw, 36px); letter-spacing: .04em; color: var(--red);
+    text-shadow: 0 0 18px rgba(255,0,0,.8), 0 2px 0 #000; }
+  #alert.on { color: #fff; }
+
+  #crash { position: fixed; inset: 0; background: #0b2a8a; color: #fff; padding: 8vh 8vw; overflow: auto;
+    font: 18px/1.55 ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace; }
+  #crash .face { font-size: 96px; line-height: 1; margin-bottom: 24px; }
+  #crash h2 { font: 700 28px/1.3 system-ui, sans-serif; margin: 0 0 18px; max-width: 900px; }
+  #crash .trace { opacity: .85; margin: 18px 0; white-space: pre-wrap; }
+  #crash button { margin-top: 18px; font: 700 16px system-ui, sans-serif; padding: 12px 22px; border: 0; border-radius: 6px;
+    background: #fff; color: #0b2a8a; cursor: pointer; }
+  [hidden] { display: none !important; }
+</style>
+<script type="importmap">
+{ "imports": {
+    "three": "./lib/three.module.min.js",
+    "three/addons/": "./lib/addons/"
+} }
+</script>
+</head>
+<body>
+<div id="app"></div>
+
+<div id="crosshair"></div>
+<div id="prompt" hidden><kbd>E</kbd>Tryck på knappen</div>
+<div id="fps"></div>
+<div id="alert" hidden></div>
+
+<div id="overlay">
+  <div class="card">
+    <div class="kicker">Vibe Jam 2026 · Lag 8</div>
+    <h1 id="overlay-title">SAAB-museet</h1>
+    <div>Gå runt bland svenska stridsflygplan. Läs skyltarna. Rör inte den röda knappen.</div>
+    <div class="cta" id="overlay-cta">Klicka för att gå in</div>
+    <div class="keys">
+      <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> gå</span>
+      <span><kbd>Mus</kbd> titta</span>
+      <span><kbd>Shift</kbd> spring</span>
+      <span><kbd>E</kbd> interagera</span>
+      <span><kbd>Esc</kbd> paus</span>
+    </div>
+    <div id="gpu"></div>
+  </div>
+</div>
+
+<div id="crash" hidden>
+  <div class="face">:(</div>
+  <h2>SAAB-museet stötte på ett problem och måste stängas. Någon tryckte på knappen. Det stod faktiskt TRYCK INTE.</h2>
+  <div>Felkod: <b>0xJAS39 — FÖR_MYCKET_DRAGKRAFT</b></div>
+  <div>Flygplan kvar i museet: 0 av 3 · Tak kvar: 0 %</div>
+  <div class="trace">  at Efterbrännkammare.tänd (motor.js:39)
+  at Gripen.lyft (hangar.js:1988)
+  at Viggen.vägbas (landsväg.js:1967)
+  at Draken.dubbeldelta (vinge.js:1955)
+  at Museum.tak (byggnad.js:404) — taket hittades inte
+  at Besökare.nyfikenhet (människa.js:∞)
+  at Knapp.tryck (DU)</div>
+  <div>WebGL-kontexten har förlorats. Grafikkortet låtsas att det aldrig har sett det här museet.</div>
+  <button id="restart">Starta om museet</button>
+</div>
+
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
