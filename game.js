@@ -668,9 +668,13 @@ const sfx = {
 };
 
 // ---------------------------------------------------------------- UI
-let plaqueFor = null;
-function showPlaque(t, m, x, src = null){ $('plaqueTitle').textContent = t; $('plaqueMeta').textContent = m; $('plaqueText').textContent = x; $('plaque').classList.add('show'); plaqueFor = src; }
-function hidePlaque(){ $('plaque').classList.remove('show'); plaqueFor = null; }
+let plaqueFor = null, plaqueTimer = 0;
+const PLAQUE_MS = 4000; // the info box closes by itself after 4 seconds
+function showPlaque(t, m, x, src = null){
+  $('plaqueTitle').textContent = t; $('plaqueMeta').textContent = m; $('plaqueText').textContent = x; $('plaque').classList.add('show'); plaqueFor = src;
+  clearTimeout(plaqueTimer); plaqueTimer = setTimeout(hidePlaque, PLAQUE_MS);
+}
+function hidePlaque(){ clearTimeout(plaqueTimer); $('plaque').classList.remove('show'); plaqueFor = null; }
 $('plaqueClose').addEventListener('click', hidePlaque);
 let toastTimer = 0;
 function toast(name, sub){ const t = $('toast'); t.innerHTML = ''; const s = document.createElement('small'); s.textContent = sub; t.append(s, name); t.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 1800); }
