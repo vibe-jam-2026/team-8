@@ -256,6 +256,30 @@ function painting(r, side, along, y, w, h, kind, seed, info, frame = true){
   if (info){ const p = inFront(r, side, along, 1.1); interact({x:p.x, z:p.z, r:2.0, info}); }
   return g;
 }
+// a framed photo portrait with a small picture lamp above it
+function photoPainting(r, side, along, y, w, h, src, info){
+  const g = new THREE.Group();
+  g.add(box(w + .3, h + .3, .1, GOLD));
+  const mat = box(w + .1, h + .1, .02, M('#f1ead8')); mat.position.z = .055; g.add(mat);
+  pending++;
+  const tex = new THREE.TextureLoader().load(src, t => {
+    // crop the photo to fill the frame without stretching (like CSS object-fit: cover)
+    const ia = t.image.width / t.image.height, fa = w / h;
+    if (ia > fa){ t.repeat.set(fa / ia, 1); t.offset.set((1 - fa / ia) / 2, 0); }
+    else { t.repeat.set(1, ia / fa); t.offset.set(0, (1 - ia / fa) * .65); }
+    loaded++; progress();
+  }, undefined, () => { loaded++; progress(); });
+  tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
+  const pic = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshStandardMaterial({map: tex, roughness:.6, emissive:'#ffffff', emissiveMap: tex, emissiveIntensity:.25}));
+  pic.position.z = .07; g.add(pic);
+  const lampArm = box(.04, .04, .3, GOLD); lampArm.position.set(0, h/2 + .25, .15); g.add(lampArm);
+  const lamp = cyl(.05, .05, w * .5, GOLD, 12); lamp.rotation.z = Math.PI/2; lamp.position.set(0, h/2 + .25, .3); g.add(lamp);
+  const glow = box(w * .48, .02, .05, new THREE.MeshBasicMaterial({color:'#fff3d0'})); glow.position.set(0, h/2 + .21, .3); g.add(glow);
+  const label = box(.36, .14, .02, M('#efe7d6')); label.position.set(0, -h/2 - .35, 0); g.add(label);
+  onWall(g, r, side, along, y, .06);
+  const p = inFront(r, side, along, 1.1); interact({x:p.x, z:p.z, r:2.0, info});
+  return g;
+}
 function bench(x, z, info, rotY = 0){
   const g = new THREE.Group(), wood = M('#6b4a2f'), dark = M('#3d2a1a');
   add(box(2.6, .1, .6, wood), 0, .45, 0, g);
@@ -508,6 +532,11 @@ function populate(){
   bench(E.c.x, E.c.z + 4.5, null);
   painting(E, 's', -3.5, 2.2, 1.4, 1.0, 'abstract', 41, ['Välkommen','Affisch, 2026','Museum Aurora har öppet tisdag till söndag. På natten är det bara du och utställningarna.']);
   star('entre', E.c.x + 4.7, 1.32, E.c.z - 4.5);
+  // portraits of real people, hung around the museum
+  photoPainting(E, 's', 3.5, 2.2, 1.2, 1.55, 'assets/portrait-1.jpg', ['Mannen som aldrig blinkade','Porträtt, 2026. Pigment på papper','Porträttet hänger i entrén för att hälsa besökarna välkomna. Vakterna säger att blicken följer en genom hela hallen.']);
+  photoPainting(MO, 'e', 0, 2.3, 1.5, 1.5, 'assets/portrait-2.jpg', ['Kvinna i kopparljus','Porträtt, 2026. Olja på duk (påstås det)','Konstexperterna är oense om detta är en målning eller ett mobilfoto i guldram. Museet har bestämt att det inte spelar någon roll.']);
+  photoPainting(EG, 'w', -2.4, 2.3, 1.2, 1.6, 'assets/portrait-3.jpg', ['Mannen med besöksbrickan','Porträtt, 2026','Han kom in med en besöksbricka för en guidad tur och gick aldrig hem. Nu hänger han här, bland de andra skatterna.']);
+  photoPainting(N, 'w', 2.6, 2.3, 1.2, 1.6, 'assets/portrait-4.jpg', ['Den förra nattvakten','Porträtt, 2026','Sägs föreställa museets förra nattvakt. Han slutade efter att ha tryckt på en viss knapp.']);
   // Konstgalleriet
   painting(K, 'n', -4.3, 2.3, 1.6, 2.0, 'portrait', 11, ['Damen med bärnstensbrosch','Okänd mästare, ca 1790. Olja på duk','Ingen vet vem hon är, men alla som stannat framför tavlan säger att hon ser ut som någon de känner.']);
   painting(K, 'n', 0, 2.4, 2.0, 2.4, 'landscape', 12, ['Kvällsljus över Vättern','Ingrid Solmark, 1884. Olja på duk','Solmark målade samma vy 41 gånger. Detta är den enda versionen där hon tog med det lilla trädet.']);
