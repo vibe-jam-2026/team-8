@@ -570,14 +570,18 @@ function buildGuard(){
   const torch = cyl(.045, .055, .26, M('#444', {metalness:.6})); torch.rotation.x = Math.PI/2; torch.position.set(0, -.66, .12); armR.add(torch);
   const lens = new THREE.Mesh(new THREE.CircleGeometry(.045, 16), new THREE.MeshBasicMaterial({color:'#fff6cc'})); lens.position.set(0, -.66, .251); armR.add(lens);
   const head = new THREE.Group(); head.position.y = 1.83; body.add(head);
-  // photo face wrapped around the front half of the head, hair colour on the back half
+  // photo face: projected straight on from the front so it is not stretched, on a slightly oval head
   const face = new THREE.TextureLoader().load('assets/player-head.jpg', () => { loaded++; progress(); }, undefined, () => { loaded++; progress(); }); pending++;
-  face.colorSpace = THREE.SRGBColorSpace; face.anisotropy = 8; face.repeat.set(.46, .6); face.offset.set(.25, .27);
-  head.add(new THREE.Mesh(new THREE.SphereGeometry(.22, 40, 28, 0, Math.PI), new THREE.MeshStandardMaterial({map: face, roughness:.8})));
-  head.add(new THREE.Mesh(new THREE.SphereGeometry(.22, 40, 28, Math.PI, Math.PI), M('#6b4a2e')));
-  const cap = cyl(.2, .21, .09, dark, 24); cap.position.y = .19; head.add(cap);
-  add(cyl(.215, .215, .025, M('#e2b552'), 24), 0, .15, 0, head);
-  const visor = box(.3, .022, .14, dark); visor.position.set(0, .15, .2); head.add(visor);
+  face.colorSpace = THREE.SRGBColorSpace; face.anisotropy = 8; face.repeat.set(.455, .57); face.offset.set(.274, .262);
+  const HR = .23, HS = [.72, 1.05, .88];
+  const faceGeo = new THREE.SphereGeometry(HR, 48, 32, 0, Math.PI), fp = faceGeo.attributes.position, fuv = faceGeo.attributes.uv;
+  for (let i = 0; i < fp.count; i++) fuv.setXY(i, .5 + fp.getX(i) / (2 * HR), .5 + fp.getY(i) / (2 * HR));
+  const faceMesh = new THREE.Mesh(faceGeo, new THREE.MeshStandardMaterial({map: face, emissive:'#ffffff', emissiveMap: face, emissiveIntensity:.5, roughness:.9}));
+  faceMesh.scale.set(...HS); head.add(faceMesh);
+  const backMesh = new THREE.Mesh(new THREE.SphereGeometry(HR, 48, 32, Math.PI, Math.PI), M('#6b4a2e')); backMesh.scale.set(...HS); head.add(backMesh);
+  const cap = cyl(.155, .175, .07, dark, 24); cap.position.y = .225; head.add(cap);
+  add(cyl(.18, .18, .02, M('#e2b552'), 24), 0, .195, 0, head);
+  const visor = box(.26, .02, .12, dark); visor.position.set(0, .2, .17); visor.rotation.x = -.15; head.add(visor);
   const neck = cyl(.07, .08, .12, skin, 12); neck.position.y = 1.62; body.add(neck);
   const stump = cyl(.075, .075, .02, M('#c23b3b'), 12); stump.position.y = 1.69; stump.visible = false; body.add(stump);
   // flashlight
