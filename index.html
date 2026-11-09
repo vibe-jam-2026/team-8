@@ -1,45 +1,108 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Team 8 · Claude Code exercise</title><style>
-:root { --y: #FFB838; --ink: #34322E; --mut: #6b675f; --line: #e6e2da; }
-* { box-sizing: border-box; }
-body { margin: 0; font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); background: #fff; }
-header { background: var(--y); padding: 32px 0 24px; }
-.wrap { max-width: 980px; margin: 0 auto; padding: 0 24px; }
-header .k { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; opacity: .7; }
-header h1 { margin: 6px 0 14px; font-size: 40px; font-weight: 500; }
-header .where { display: flex; flex-wrap: wrap; gap: 8px 24px; font-size: 15px; }
-header a { color: inherit; font-weight: 600; }
-main { max-width: 980px; margin: 0 auto; padding: 8px 24px 64px; }
-h2.part { font-size: 28px; font-weight: 500; margin: 40px 0 8px; padding-top: 24px; border-top: 4px solid var(--y); }
-h2 { font-size: 19px; margin: 28px 0 8px; }
-h3 { font-size: 16px; margin: 0 0 6px; }
-.task { font-size: 20px; }
-.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 40px; }
-@media (max-width: 760px) { .cols { grid-template-columns: 1fr; } header h1 { font-size: 30px; } }
-ul, ol { padding-left: 22px; } li { margin: 4px 0; }
-table { border-collapse: collapse; width: 100%; font-size: 15px; }
-td, th { text-align: left; padding: 7px 10px 7px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
-td:first-child { white-space: nowrap; }
-.demo { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-.demo div { background: #f6f4ef; border-radius: 8px; padding: 14px 16px; }
-.demo b { display: block; font-size: 22px; }
-.card { background: #f6f4ef; border-radius: 8px; padding: 14px 16px; }
-footer { color: var(--mut); font-size: 14px; margin-top: 48px; }</style></head><body>
-<header><div class="wrap"><div class="k">Claude Code exercise · Saab · 9–10 November 2026</div><h1>Team 8</h1>
-<div class="where"><span>Repo: <a href="https://github.com/vibe-jam-2026/team-8">github.com/vibe-jam-2026/team-8</a></span><span>Address: <a href="https://vibe-jam-2026.github.io/team-8/">vibe-jam-2026.github.io/team-8</a></span><span>Build at: <a href="https://claude.ai/code">claude.ai/code</a></span></div></div></header>
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Team 8</title>
+<style>
+  :root { --y: #FFB838; --ink: #fff; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: var(--ink);
+    background: #0b0a12;
+    overflow: hidden;
+  }
+
+  /* Slowly shifting, pulsing colour background */
+  .bg {
+    position: fixed; inset: 0; z-index: 0;
+    background:
+      radial-gradient(circle at 20% 30%, #ff3d7f 0, transparent 45%),
+      radial-gradient(circle at 80% 20%, #3d8bff 0, transparent 45%),
+      radial-gradient(circle at 50% 85%, var(--y) 0, transparent 50%),
+      #0b0a12;
+    background-size: 160% 160%;
+    animation: drift 18s ease-in-out infinite alternate, pulse 3s ease-in-out infinite;
+  }
+  @keyframes drift {
+    0%   { background-position: 0% 0%; filter: hue-rotate(0deg); }
+    100% { background-position: 100% 100%; filter: hue-rotate(120deg); }
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: .55; }
+    50%      { opacity: 1; }
+  }
+
+  /* Blinking lights */
+  .lights { position: fixed; inset: 0; z-index: 1; pointer-events: none; }
+  .lights span {
+    position: absolute;
+    border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 0 12px 3px currentColor;
+    opacity: 0;
+    animation: blink var(--d) ease-in-out var(--delay) infinite;
+  }
+  @keyframes blink {
+    0%, 100% { opacity: 0; transform: scale(.4); }
+    50%      { opacity: 1; transform: scale(1); }
+  }
+
+  main {
+    position: relative; z-index: 2;
+    height: 100%;
+    display: grid; place-items: center; text-align: center;
+    padding: 16px;
+  }
+  h1 {
+    margin: 0;
+    font-size: clamp(56px, 14vw, 160px);
+    font-weight: 800;
+    letter-spacing: -.02em;
+    text-shadow: 0 0 24px rgba(255,255,255,.6), 0 0 60px var(--y);
+    animation: glow 2s ease-in-out infinite;
+  }
+  @keyframes glow {
+    0%, 100% { text-shadow: 0 0 16px rgba(255,255,255,.4), 0 0 40px var(--y); }
+    50%      { text-shadow: 0 0 32px rgba(255,255,255,.9), 0 0 90px var(--y); }
+  }
+  p { margin: 8px 0 0; font-size: 18px; opacity: .85; }
+  a { color: var(--y); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .bg, .lights span, h1 { animation: none; }
+    .lights span { opacity: .6; }
+  }
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="lights" aria-hidden="true"></div>
 <main>
-  <h2 class="part">Your repo and how to publish</h2>
-  <p>Your repo is <a href="https://github.com/vibe-jam-2026/team-8"><b>github.com/vibe-jam-2026/team-8</b></a> and what you build is published at <a href="https://vibe-jam-2026.github.io/team-8/"><b>vibe-jam-2026.github.io/team-8</b></a>. You are reading this page there now: what you build replaces it. These instructions stay at <a href="instructions.html">vibe-jam-2026.github.io/team-8/instructions.html</a>.</p>
-  
-  <h2>How to publish</h2>
-  <ol>
-    <li>Open <b>claude.ai/code</b> in the browser and log in with <b>team8@rawe.se</b>. Adrian gives you the login code in the room. Accept the invitation to <b>VibeJam2026</b> when it shows.</li>
-    <li>One person in the team clicks <b>Sign in with GitHub</b> and approves with their own GitHub account. That person must have accepted the invitation to the team's repo, or Claude cannot push. Then pick the repo <b>vibe-jam-2026/team-8</b>.</li>
-    <li>The team shares one Claude login. Agree on who steers and when. Do not change its password or settings.</li>
-    <li>Your page starts from <b>index.html</b> at the top of the repo. Everything the browser needs must be in the repo as static files: HTML, JavaScript, CSS, images and sound.</li>
-    <li>Claude pushes its work to a branch of its own. Publish by asking it to open a pull request, then click <b>Merge</b> on github.com, so the change lands in <b>main</b>.</li>
-    <li>GitHub Pages publishes every change to main by itself. About a minute later the new version is live at your address.</li>
-    <li>Built with a tool such as Vite? Put the finished files at the top of the repo or in <b>docs/</b>. docs/ is picked up by itself when there is no index.html at the top. Use relative paths, because your site lives under /team-8/.</li>
-  </ol>
-  
-<footer>Questions during the exercise: ask Adrian.</footer></main></body></html>
+  <div>
+    <h1>Team 8</h1>
+    <p>Vibe Jam 2026</p>
+    <p><a href="instructions.html">Instruktioner</a></p>
+  </div>
+</main>
+<script>
+  // Sprinkle blinking lights across the screen
+  const colors = ['#fff', '#FFB838', '#ff3d7f', '#3d8bff', '#7dffb0'];
+  const box = document.querySelector('.lights');
+  const count = Math.round(Math.min(160, (innerWidth * innerHeight) / 9000));
+  for (let i = 0; i < count; i++) {
+    const s = document.createElement('span');
+    const size = 2 + Math.random() * 5;
+    s.style.cssText =
+      `left:${Math.random() * 100}%;top:${Math.random() * 100}%;` +
+      `width:${size}px;height:${size}px;` +
+      `color:${colors[i % colors.length]};` +
+      `--d:${(1.2 + Math.random() * 2.8).toFixed(2)}s;` +
+      `--delay:${(-Math.random() * 4).toFixed(2)}s;`;
+    box.appendChild(s);
+  }
+</script>
+</body>
+</html>
