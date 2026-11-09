@@ -3,253 +3,98 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Bananskjutaren</title>
+<title>Tryck inte</title>
 <style>
-  html, body { margin: 0; height: 100%; overflow: hidden; background: #87ceeb; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
-  canvas { display: block; cursor: crosshair; touch-action: none; }
-  #hud {
-    position: fixed; top: 12px; left: 16px; right: 16px;
-    display: flex; justify-content: space-between; align-items: center;
-    color: #fff; font-size: 22px; font-weight: 700;
-    text-shadow: 0 2px 4px rgba(0,0,0,.5); pointer-events: none;
+  html, body { margin: 0; height: 100%; overflow: hidden; }
+  body {
+    display: grid; place-items: center;
+    background: #f4f1ea;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   }
-  #hud a { color: #fff; pointer-events: auto; font-size: 15px; font-weight: 500; }
-  #start {
-    position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; text-align: center;
-    background: rgba(0,0,0,.45); color: #fff; padding: 16px;
-  }
-  #start h1 { font-size: clamp(36px, 8vw, 72px); margin: 0 0 8px; color: #FFE135; text-shadow: 0 4px 12px rgba(0,0,0,.4); }
-  #start p { margin: 6px 0; font-size: 18px; }
-  #start button {
-    margin-top: 16px; font: inherit; font-size: 22px; font-weight: 700;
-    padding: 12px 32px; border: 0; border-radius: 999px;
+  #knapp {
+    font: inherit; font-size: clamp(22px, 5vw, 36px); font-weight: 700;
+    padding: 20px 48px; border: 0; border-radius: 999px;
     background: #FFE135; color: #3b2f00; cursor: pointer;
+    box-shadow: 0 6px 0 #c9a800;
+  }
+  #knapp:active { transform: translateY(4px); box-shadow: 0 2px 0 #c9a800; }
+
+  #scare {
+    position: fixed; inset: -30px; display: none;
+    background: #000; place-items: center; overflow: hidden;
+  }
+  #scare.on { display: grid; animation: shake .08s linear infinite; }
+  #scare img {
+    width: 100vmin; height: 100vmin; object-fit: cover;
+    image-rendering: pixelated;
+    filter: contrast(1.6) brightness(1.1);
+    animation: zoom .35s cubic-bezier(.2, 1.6, .4, 1) forwards;
+  }
+  #scare::after {
+    content: ""; position: absolute; inset: 0;
+    background: #ff0000; mix-blend-mode: multiply;
+    animation: red .6s ease-out forwards;
+  }
+  @keyframes zoom { from { transform: scale(.05); } to { transform: scale(1.05); } }
+  @keyframes red { from { opacity: .7; } to { opacity: .12; } }
+  @keyframes shake {
+    0%   { transform: translate(0, 0); }
+    25%  { transform: translate(-12px, 8px); }
+    50%  { transform: translate(10px, -10px); }
+    75%  { transform: translate(-8px, -6px); }
+    100% { transform: translate(0, 0); }
   }
 </style>
 </head>
 <body>
-<div id="hud"><span>🍌 Poäng: <span id="score">0</span></span><span>Tid: <span id="time">60</span></span><a href="index.html">Tillbaka</a></div>
-<div id="start">
-  <div>
-    <h1>Bananskjutaren</h1>
-    <p>Klicka eller tryck för att skjuta bananer.</p>
-    <p>Träffa så många mål som du kan på 60 sekunder!</p>
-    <p id="result"></p>
-    <button id="go">Spela</button>
-  </div>
-</div>
+<button id="knapp">Tryck här</button>
+<div id="scare"><img src="assets/ansikte.jpg" alt=""></div>
 
-<script src="lib/three.min.js"></script>
 <script>
-  // If lib/ is missing (e.g. only this file was downloaded), fetch three.js from the internet instead
-  if (!window.THREE) document.write('<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"><\/script>');
-</script>
-<script>
-if (!window.THREE) {
-  document.getElementById('result').textContent =
-    'Kunde inte ladda 3D-motorn. Öppna spel.html från repo-mappen (med mappen lib bredvid) eller anslut till internet.';
-  document.getElementById('go').disabled = true;
-  document.getElementById('go').textContent = 'Kan inte starta';
-  throw new Error('three.js did not load');
-}
-// ---- Scene ----
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-renderer.setSize(innerWidth, innerHeight);
-document.body.prepend(renderer.domElement);
+const knapp = document.getElementById('knapp');
+const scare = document.getElementById('scare');
 
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87ceeb);
-scene.fog = new THREE.Fog(0x87ceeb, 25, 70);
+// A scream made with the Web Audio API, so no sound file is needed
+function scream() {
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const now = ctx.currentTime, len = 1.6;
+  const out = ctx.createGain();
+  out.gain.setValueAtTime(0.9, now);
+  out.gain.exponentialRampToValueAtTime(0.001, now + len);
+  out.connect(ctx.destination);
 
-const camera = new THREE.PerspectiveCamera(65, innerWidth / innerHeight, 0.1, 200);
-camera.position.set(0, 2, 6);
-camera.lookAt(0, 2, -10);
-
-scene.add(new THREE.HemisphereLight(0xffffff, 0x447744, 0.9));
-const sun = new THREE.DirectionalLight(0xffffff, 0.8);
-sun.position.set(5, 10, 4);
-scene.add(sun);
-
-// Ground
-const ground = new THREE.Mesh(
-  new THREE.PlaneGeometry(200, 200),
-  new THREE.MeshStandardMaterial({ color: 0x2f7d32 })
-);
-ground.rotation.x = -Math.PI / 2;
-scene.add(ground);
-
-// A few trees for depth
-const trunkMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b });
-const leafMat = new THREE.MeshStandardMaterial({ color: 0x2e8b57 });
-for (let i = 0; i < 24; i++) {
-  const x = (Math.random() - 0.5) * 80;
-  const z = -10 - Math.random() * 50;
-  if (Math.abs(x) < 4) continue;
-  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.3, 2), trunkMat);
-  trunk.position.set(x, 1, z);
-  const leaves = new THREE.Mesh(new THREE.ConeGeometry(1.4, 3, 8), leafMat);
-  leaves.position.set(x, 3.4, z);
-  scene.add(trunk, leaves);
-}
-
-// ---- Banana ----
-const bananaGeo = new THREE.TorusGeometry(0.45, 0.12, 8, 20, Math.PI * 0.65);
-const bananaMat = new THREE.MeshStandardMaterial({ color: 0xffe135, roughness: 0.6 });
-const tipGeo = new THREE.CylinderGeometry(0.04, 0.06, 0.14, 6);
-const tipMat = new THREE.MeshStandardMaterial({ color: 0x5a3d1a });
-
-function makeBanana() {
-  const g = new THREE.Group();
-  g.add(new THREE.Mesh(bananaGeo, bananaMat));
-  const tip = new THREE.Mesh(tipGeo, tipMat);
-  tip.position.set(0.45, 0, 0);
-  g.add(tip);
-  return g;
-}
-
-// ---- Targets ----
-const targetColors = [0xff4d6d, 0x4d8bff, 0x9b5de5, 0xff8c42, 0x00bbf9];
-const targets = [];
-function spawnTarget(t) {
-  const mesh = t || new THREE.Mesh(
-    new THREE.SphereGeometry(1, 20, 16),
-    new THREE.MeshStandardMaterial({ color: 0xffffff })
-  );
-  mesh.material.color.setHex(targetColors[Math.floor(Math.random() * targetColors.length)]);
-  mesh.userData = {
-    baseY: 1.5 + Math.random() * 3,
-    z: -12 - Math.random() * 22,
-    x: (Math.random() - 0.5) * 16,
-    speed: (Math.random() < 0.5 ? -1 : 1) * (1 + Math.random() * 2.5),
-    phase: Math.random() * Math.PI * 2,
-  };
-  mesh.position.set(mesh.userData.x, mesh.userData.baseY, mesh.userData.z);
-  if (!t) { scene.add(mesh); targets.push(mesh); }
-}
-for (let i = 0; i < 6; i++) spawnTarget();
-
-// ---- Particles (splat when hit) ----
-const particles = [];
-const partGeo = new THREE.BoxGeometry(0.15, 0.15, 0.15);
-function burst(pos, color) {
-  for (let i = 0; i < 18; i++) {
-    const p = new THREE.Mesh(partGeo, new THREE.MeshStandardMaterial({ color }));
-    p.position.copy(pos);
-    p.userData.v = new THREE.Vector3((Math.random() - .5) * 8, Math.random() * 7, (Math.random() - .5) * 8);
-    p.userData.life = 1;
-    scene.add(p);
-    particles.push(p);
-  }
-}
-
-// ---- Shooting ----
-const bananas = [];
-const raycaster = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
-const gravity = -9;
-let playing = false, score = 0, timeLeft = 60;
-
-function shoot(ev) {
-  if (!playing) return;
-  mouse.x = (ev.clientX / innerWidth) * 2 - 1;
-  mouse.y = -(ev.clientY / innerHeight) * 2 + 1;
-  raycaster.setFromCamera(mouse, camera);
-  const dir = raycaster.ray.direction.clone();
-  const b = makeBanana();
-  b.position.copy(camera.position).add(new THREE.Vector3(0, -0.6, -0.5));
-  // Aim a little above the cursor to make up for gravity
-  b.userData.v = dir.multiplyScalar(32).add(new THREE.Vector3(0, 3, 0));
-  b.userData.spin = new THREE.Vector3(Math.random() * 6, 10 + Math.random() * 6, Math.random() * 6);
-  scene.add(b);
-  bananas.push(b);
-}
-renderer.domElement.addEventListener('pointerdown', shoot);
-
-// ---- Game flow ----
-const scoreEl = document.getElementById('score');
-const timeEl = document.getElementById('time');
-const startEl = document.getElementById('start');
-const resultEl = document.getElementById('result');
-document.getElementById('go').addEventListener('click', () => {
-  score = 0; timeLeft = 60; playing = true;
-  scoreEl.textContent = 0;
-  startEl.style.display = 'none';
-});
-
-function endGame() {
-  playing = false;
-  resultEl.textContent = `Du fick ${score} poäng! 🍌`;
-  document.getElementById('go').textContent = 'Spela igen';
-  startEl.style.display = 'grid';
-}
-
-// ---- Loop ----
-const clock = new THREE.Clock();
-function tick() {
-  const dt = Math.min(clock.getDelta(), 0.05);
-  const t = clock.elapsedTime;
-
-  if (playing) {
-    timeLeft -= dt;
-    timeEl.textContent = Math.max(0, Math.ceil(timeLeft));
-    if (timeLeft <= 0) endGame();
+  // Screeching tones
+  for (const [type, f] of [['sawtooth', 880], ['square', 1240], ['sawtooth', 620]]) {
+    const o = ctx.createOscillator();
+    o.type = type;
+    o.frequency.setValueAtTime(f, now);
+    o.frequency.linearRampToValueAtTime(f * 1.5, now + 0.15);
+    o.frequency.linearRampToValueAtTime(f * 0.7, now + len);
+    const lfo = ctx.createOscillator(), lfoGain = ctx.createGain();
+    lfo.frequency.value = 28; lfoGain.gain.value = f * 0.08;
+    lfo.connect(lfoGain).connect(o.frequency);
+    const g = ctx.createGain(); g.gain.value = 0.18;
+    o.connect(g).connect(out);
+    o.start(now); lfo.start(now); o.stop(now + len); lfo.stop(now + len);
   }
 
-  for (const m of targets) {
-    const u = m.userData;
-    m.position.x += u.speed * dt;
-    if (m.position.x > 10 || m.position.x < -10) u.speed *= -1;
-    m.position.y = u.baseY + Math.sin(t * 2 + u.phase) * 0.6;
-  }
-
-  for (let i = bananas.length - 1; i >= 0; i--) {
-    const b = bananas[i];
-    b.userData.v.y += gravity * dt;
-    b.position.addScaledVector(b.userData.v, dt);
-    b.rotation.x += b.userData.spin.x * dt;
-    b.rotation.y += b.userData.spin.y * dt;
-    b.rotation.z += b.userData.spin.z * dt;
-
-    let hit = false;
-    for (const m of targets) {
-      if (b.position.distanceTo(m.position) < 1.3) {
-        burst(m.position, m.material.color.getHex());
-        burst(b.position, 0xffe135);
-        if (playing) scoreEl.textContent = ++score;
-        spawnTarget(m);
-        hit = true;
-        break;
-      }
-    }
-    if (hit || b.position.y < 0 || b.position.z < -80) {
-      scene.remove(b);
-      bananas.splice(i, 1);
-    }
-  }
-
-  for (let i = particles.length - 1; i >= 0; i--) {
-    const p = particles[i];
-    p.userData.v.y += gravity * dt;
-    p.position.addScaledVector(p.userData.v, dt);
-    p.userData.life -= dt * 1.2;
-    p.scale.setScalar(Math.max(p.userData.life, 0.01));
-    if (p.userData.life <= 0) {
-      scene.remove(p);
-      p.material.dispose();
-      particles.splice(i, 1);
-    }
-  }
-
-  renderer.render(scene, camera);
-  requestAnimationFrame(tick);
+  // Noise burst
+  const buf = ctx.createBuffer(1, ctx.sampleRate * len, ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+  const noise = ctx.createBufferSource(); noise.buffer = buf;
+  const ng = ctx.createGain(); ng.gain.value = 0.35;
+  noise.connect(ng).connect(out);
+  noise.start(now);
 }
-tick();
 
-addEventListener('resize', () => {
-  camera.aspect = innerWidth / innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth, innerHeight);
+knapp.addEventListener('click', () => {
+  knapp.style.display = 'none';
+  scare.classList.add('on');
+  try { scream(); } catch (e) {}
+  // Stop shaking after a moment, then go back to the button
+  setTimeout(() => scare.classList.remove('on'), 2000);
+  setTimeout(() => { knapp.style.display = ''; }, 2000);
 });
 </script>
 </body>
