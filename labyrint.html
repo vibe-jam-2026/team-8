@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Igelkottens labyrint – Team 8</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --hedge: #1d3b2a;
+    --hedge-dark: #142a1e;
+    --path: #e8dcbf;
+    --lingon: #c42a34;
+    --team: #FFB838;
+    --text: #f4ecd8;
+    --muted: #b9c7b4;
+    color-scheme: dark;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  *, *::before, *::after { box-sizing: inherit; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--hedge-dark);
+    color: var(--text);
+    font: 17px/1.5 "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", sans-serif;
+    display: flex; flex-direction: column; align-items: center;
+    overflow: hidden;
+    touch-action: none;
+  }
+  header {
+    width: 100%; max-width: 760px;
+    display: flex; align-items: baseline; justify-content: space-between; gap: 16px;
+    padding: 16px 20px 10px;
+  }
+  h1 { margin: 0; font-size: clamp(22px, 4.5vw, 32px); font-weight: 800; letter-spacing: -.01em; }
+  h1 small { display: block; font-size: 14px; font-weight: 400; color: var(--muted); letter-spacing: 0; }
+  .stats { display: flex; gap: 22px; font-variant-numeric: tabular-nums; }
+  .stat b { display: block; font-size: 26px; font-weight: 800; line-height: 1.1; color: var(--team); }
+  .stat span { font-size: 13px; color: var(--muted); }
+  .board {
+    position: relative; flex: 1; width: 100%;
+    display: grid; place-items: center; padding: 6px 12px 12px; min-height: 0;
+  }
+  canvas { display: block; border-radius: 14px; box-shadow: 0 0 0 6px var(--hedge), 0 18px 50px rgba(0,0,0,.45); }
+  .overlay {
+    position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 20px;
+  }
+  .overlay[hidden] { display: none; }
+  .panel {
+    background: var(--path); color: var(--hedge-dark);
+    border-radius: 18px; padding: 26px 30px 28px; max-width: 380px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.5);
+  }
+  .panel h2 { margin: 0 0 6px; font-size: 30px; font-weight: 800; line-height: 1.15; }
+  .panel p { margin: 0 0 18px; }
+  .panel button {
+    font: inherit; font-weight: 700; font-size: 18px;
+    background: var(--lingon); color: #fff; border: 0; border-radius: 999px;
+    padding: 11px 26px; cursor: pointer;
+  }
+  .panel button:focus-visible { outline: 3px solid var(--team); outline-offset: 3px; }
+  .hint { color: var(--muted); font-size: 14px; padding: 0 16px 14px; text-align: center; }
+  @media (max-width: 520px) { .stats { gap: 14px; } .stat b { font-size: 21px; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Igelkottens labyrint<small>Team 8 · Vibe Jam 2026</small></h1>
+  <div class="stats">
+    <div class="stat"><b id="lives">♥♥♥</b><span>Liv</span></div>
+    <div class="stat"><b id="level">1</b><span>Bana</span></div>
+    <div class="stat"><b id="left">0</b><span>Kvar</span></div>
+    <div class="stat"><b id="score">0</b><span>Poäng</span></div>
+  </div>
+</header>
+<div class="board" id="board">
+  <canvas id="c" aria-label="Labyrint med en igelkott och lingon"></canvas>
+  <div class="overlay" id="overlay">
+    <div class="panel">
+      <h2 id="ovTitle">Hjälp igelkotten äta upp alla lingon</h2>
+      <p id="ovText">Styr med piltangenterna. På mobil sveper du åt det håll du vill gå. Se upp för räven – den är hungrig på igelkottar.</p>
+      <button id="ovBtn">Starta</button>
+    </div>
+  </div>
+</div>
+<div class="hint">Piltangenter eller WASD för att gå · P pausar</div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  const board = document.getElementById('board');
+  const $ = id => document.getElementById(id);
+  const css = getComputedStyle(document.documentElement);
+  const C = {
+    hedge: css.getPropertyValue('--hedge').trim(),
+    hedgeDark: css.getPropertyValue('--hedge-dark').trim(),
+    path: css.getPropertyValue('--path').trim(),
+    lingon: css.getPropertyValue('--lingon').trim(),
+    team: css.getPropertyValue('--team').trim(),
+  };
+
+  // ---------- Labyrint ----------
+  let W, H, grid, berries, total, tile;
+  const DIRS = { up: [0,-1], down: [0,1], left: [-1,0], right: [1,0] };
+
+  function makeMaze(cw, ch) {
+    W = cw * 2 + 1; H = ch * 2 + 1;
+    grid = Array.from({ length: H }, () => Array(W).fill(1)); // 1 = häck, 0 = gång
+    const seen = Array.from({ length: ch }, () => Array(cw).fill(false));
+    const stack = [[0, 0]];
+    seen[0][0] = true; grid[1][1] = 0;
+    while (stack.length) {
+      const [x, y] = stack[stack.length - 1];
+      const opts = [[1,0],[-1,0],[0,1],[0,-1]]
+        .map(([dx, dy]) => [x + dx, y + dy, dx, dy])
+        .filter(([nx, ny]) => nx >= 0 && ny >= 0 && nx < cw && ny < ch && !seen[ny][nx]);
+      if (!opts.length) { stack.pop(); continue; }
+      const [nx, ny, dx, dy] = opts[Math.floor(Math.random() * opts.length)];
+      grid[y*2+1+dy][x*2+1+dx] = 0;
+      grid[ny*2+1][nx*2+1] = 0;
+      seen[ny][nx] = true;
+      stack.push([nx, ny]);
+    }
+    // Öppna några extra passager så det blir slingor
+    const extra = Math.floor(cw * ch * 0.12);
+    for (let i = 0; i < extra; i++) {
+      const x = 1 + Math.floor(Math.random() * (W - 2));
+      const y = 1 + Math.floor(Math.random() * (H - 2));
+      if (grid[y][x] !== 1) continue;
+      const horiz = grid[y][x-1] === 0 && grid[y][x+1] === 0 && grid[y-1][x] === 1 && grid[y+1][x] === 1;
+      const vert  = grid[y-1][x] === 0 && grid[y+1][x] === 0 && grid[y][x-1] === 1 && grid[y][x+1] === 1;
+      if (horiz || vert) grid[y][x] = 0;
+    }
+    berries = new Set();
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++)
+      if (grid[y][x] === 0 && !(x === 1 && y === 1)) berries.add(y * W + x);
+    total = berries.size;
+  }
+  const open = (x, y) => x >= 0 && y >= 0 && x < W && y < H && grid[y][x] === 0;
+
+  // ---------- Spelläge ----------
+  let level = 1, score = 0, lives = 3, running = false, paused = false, grace = 0;
+  const fox = { x: 1, y: 1, px: 1, py: 1, dir: null, t: 0, face: -1, step: 0 };
+  const hog = { x: 1, y: 1, px: 1, py: 1, dir: null, want: null, face: 1, t: 0, step: 0 };
+  const pops = [];
+
+  function startLevel() {
+    const cw = Math.min(6 + level * 2, 18), ch = Math.min(5 + level * 2, 14);
+    makeMaze(cw, ch);
+    resetPositions();
+    grace = 1.5;
+    resize(); updateHud();
+  }
+  function resetPositions() {
+    Object.assign(hog, { x: 1, y: 1, px: 1, py: 1, dir: null, want: null, t: 0, face: 1 });
+    Object.assign(fox, { x: W - 2, y: H - 2, px: W - 2, py: H - 2, dir: null, t: 0, face: -1 });
+  }
+  function updateHud() {
+    $('lives').textContent = '♥'.repeat(lives) || '–';
+    $('level').textContent = level;
+    $('left').textContent = berries.size;
+    $('score').textContent = score;
+  }
+
+  function resize() {
+    const r = board.getBoundingClientRect();
+    const maxW = r.width - 36, maxH = r.height - 36;
+    tile = Math.max(8, Math.floor(Math.min(maxW / W, maxH / H)));
+    const dpr = window.devicePixelRatio || 1;
+    canvas.style.width = W * tile + 'px';
+    canvas.style.height = H * tile + 'px';
+    canvas.width = W * tile * dpr; canvas.height = H * tile * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  window.addEventListener('resize', () => { if (grid) resize(); });
+
+  // ---------- Styrning ----------
+  const keyMap = { ArrowUp:'up', ArrowDown:'down', ArrowLeft:'left', ArrowRight:'right', w:'up', s:'down', a:'left', d:'right', W:'up', S:'down', A:'left', D:'right' };
+  window.addEventListener('keydown', e => {
+    if (keyMap[e.key]) {
+      e.preventDefault();
+      if (!running && !$('overlay').hidden) return;
+      hog.want = keyMap[e.key];
+    } else if ((e.key === 'p' || e.key === 'P') && running) {
+      togglePause();
+    }
+  });
+  let touch = null;
+  board.addEventListener('touchstart', e => { const t = e.touches[0]; touch = [t.clientX, t.clientY]; }, { passive: true });
+  board.addEventListener('touchmove', e => {
+    if (!touch) return;
+    const t = e.touches[0], dx = t.clientX - touch[0], dy = t.clientY - touch[1];
+    if (Math.hypot(dx, dy) < 24) return;
+    hog.want = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
+    touch = [t.clientX, t.clientY];
+  }, { passive: true });
+
+  function togglePause() {
+    paused = !paused;
+    showOverlay(paused, 'Paus', 'Tryck på knappen eller P för att fortsätta.', 'Fortsätt');
+  }
+  function showOverlay(show, title, text, btn) {
+    $('overlay').hidden = !show;
+    if (show) { $('ovTitle').textContent = title; $('ovText').textContent = text; $('ovBtn').textContent = btn; $('ovBtn').focus(); }
+  }
+  let onButton = () => { running = true; startLevel(); showOverlay(false); };
+  $('ovBtn').addEventListener('click', () => { if (paused) { togglePause(); return; } onButton(); });
+
+  // ---------- Ljud ----------
+  let actx;
+  function blip(freq, dur = 0.07, type = 'triangle', vol = 0.08) {
+    try {
+      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.type = type; o.frequency.value = freq;
+      g.gain.setValueAtTime(vol, actx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + dur);
+      o.connect(g).connect(actx.destination); o.start(); o.stop(actx.currentTime + dur);
+    } catch (_) {}
+  }
+
+  // ---------- Logik ----------
+  const SPEED = 7.5; // rutor per sekund
+  function update(dt) {
+    if (hog.t === 0) {
+      if (hog.want && open(hog.x + DIRS[hog.want][0], hog.y + DIRS[hog.want][1])) hog.dir = hog.want;
+      if (hog.dir && !open(hog.x + DIRS[hog.dir][0], hog.y + DIRS[hog.dir][1])) hog.dir = null;
+      if (hog.dir) { hog.t = 0.0001; if (DIRS[hog.dir][0]) hog.face = DIRS[hog.dir][0]; }
+    }
+    if (hog.dir) {
+      hog.t += dt * SPEED; hog.step += dt * 14;
+      const [dx, dy] = DIRS[hog.dir];
+      if (hog.t >= 1) {
+        hog.x += dx; hog.y += dy; hog.t = 0;
+        eat(hog.x, hog.y);
+      }
+      hog.px = hog.x + dx * hog.t; hog.py = hog.y + dy * hog.t;
+    } else { hog.px = hog.x; hog.py = hog.y; }
+
+    if (grace > 0) { grace -= dt; return; }
+    moveFox(dt);
+    if (Math.hypot(fox.px - hog.px, fox.py - hog.py) < 0.65) caught();
+  }
+
+  // Räven: jagar oftast igelkotten via kortaste vägen, ibland tar den en slumpväg
+  function nextStepTowards(sx, sy, tx, ty) {
+    const prev = new Map([[sy * W + sx, -1]]);
+    const q = [[sx, sy]];
+    while (q.length) {
+      const [x, y] = q.shift();
+      if (x === tx && y === ty) break;
+      for (const d in DIRS) {
+        const nx = x + DIRS[d][0], ny = y + DIRS[d][1], k = ny * W + nx;
+        if (open(nx, ny) && !prev.has(k)) { prev.set(k, y * W + x); q.push([nx, ny]); }
+      }
+    }
+    let k = ty * W + tx;
+    if (!prev.has(k)) return null;
+    while (prev.get(k) !== sy * W + sx && prev.get(k) !== -1) k = prev.get(k);
+    const nx = k % W, ny = (k / W) | 0;
+    for (const d in DIRS) if (sx + DIRS[d][0] === nx && sy + DIRS[d][1] === ny) return d;
+    return null;
+  }
+  const OPP = { up: 'down', down: 'up', left: 'right', right: 'left' };
+  function moveFox(dt) {
+    if (fox.t === 0) {
+      const chase = Math.min(0.6 + level * 0.06, 0.92);
+      let d = Math.random() < chase ? nextStepTowards(fox.x, fox.y, hog.x, hog.y) : null;
+      if (!d) {
+        const opts = Object.keys(DIRS).filter(k => open(fox.x + DIRS[k][0], fox.y + DIRS[k][1]));
+        const fwd = opts.filter(k => k !== OPP[fox.dir]);
+        const pool = fwd.length ? fwd : opts;
+        d = pool[Math.floor(Math.random() * pool.length)];
+      }
+      fox.dir = d; fox.t = 0.0001;
+      if (DIRS[d][0]) fox.face = DIRS[d][0];
+    }
+    const speed = Math.min(4.6 + level * 0.45, 7.2);
+    fox.t += dt * speed; fox.step += dt * 16;
+    const [dx, dy] = DIRS[fox.dir];
+    if (fox.t >= 1) { fox.x += dx; fox.y += dy; fox.t = 0; fox.px = fox.x; fox.py = fox.y; }
+    else { fox.px = fox.x + dx * fox.t; fox.py = fox.y + dy * fox.t; }
+  }
+
+  function caught() {
+    lives--; streak = 0; updateHud();
+    [300, 220, 150].forEach((f, i) => setTimeout(() => blip(f, 0.18, 'sawtooth', 0.07), i * 140));
+    if (lives <= 0) {
+      running = false;
+      showOverlay(true, 'Räven tog dig!', `Du kom till bana ${level} och fick ${score} poäng.`, 'Spela igen');
+      onButton = () => { level = 1; score = 0; lives = 3; running = true; startLevel(); showOverlay(false); };
+      return;
+    }
+    resetPositions();
+    grace = 1.5;
+  }
+  let streak = 0;
+  function eat(x, y) {
+    const k = y * W + x;
+    if (!berries.has(k)) { streak = 0; return; }
+    berries.delete(k);
+    streak++;
+    score += 10;
+    blip(520 + Math.min(streak, 12) * 30);
+    pops.push({ x, y, life: 1 });
+    updateHud();
+    if (berries.size === 0) levelDone();
+  }
+  function levelDone() {
+    running = false;
+    const bonus = 50 * level; score += bonus; updateHud();
+    [660, 880, 1100].forEach((f, i) => setTimeout(() => blip(f, 0.15, 'sine', 0.1), i * 110));
+    showOverlay(true, `Bana ${level} klar!`, `Alla ${total} lingon uppätna. Bonus: ${bonus} poäng.`, 'Nästa bana');
+    onButton = () => { level++; running = true; startLevel(); showOverlay(false); };
+  }
+
+  // ---------- Ritning ----------
+  function draw(time) {
+    const s = tile;
+    ctx.fillStyle = C.hedge; ctx.fillRect(0, 0, W * s, H * s);
+    // Häckens struktur
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      if (grid[y][x] === 1) {
+        const n = (x * 73 + y * 151) % 7;
+        ctx.fillStyle = n < 2 ? C.hedgeDark : C.hedge;
+        ctx.beginPath(); ctx.arc(x * s + s/2, y * s + s/2, s * 0.62, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+    // Gångar
+    ctx.fillStyle = C.path;
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      if (grid[y][x] !== 0) continue;
+      ctx.fillRect(x * s, y * s, s, s);
+    }
+    // Lingon
+    const bob = Math.sin(time / 300);
+    for (const k of berries) {
+      const x = k % W, y = (k / W) | 0;
+      const cx = x * s + s/2, cy = y * s + s/2 + bob * s * 0.03;
+      const r = s * 0.16;
+      ctx.fillStyle = C.lingon;
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.55)';
+      ctx.beginPath(); ctx.arc(cx - r*0.35, cy - r*0.35, r*0.3, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#3f6b3a';
+      ctx.beginPath(); ctx.ellipse(cx + r*0.5, cy - r*1.05, r*0.55, r*0.25, -0.5, 0, Math.PI * 2); ctx.fill();
+    }
+    // Poängsprakel
+    for (let i = pops.length - 1; i >= 0; i--) {
+      const p = pops[i]; p.life -= 0.04;
+      if (p.life <= 0) { pops.splice(i, 1); continue; }
+      ctx.strokeStyle = `rgba(196,42,52,${p.life})`; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(p.x * s + s/2, p.y * s + s/2, s * (0.2 + (1 - p.life) * 0.4), 0, Math.PI * 2); ctx.stroke();
+    }
+    drawFox(fox.px * s + s/2, fox.py * s + s/2, s, time);
+    if (!(grace > 0 && running && Math.floor(time / 120) % 2)) drawHog(hog.px * s + s/2, hog.py * s + s/2, s, time);
+  }
+
+  function drawFox(cx, cy, s, time) {
+    const f = fox.face, wob = Math.sin(fox.step) * s * 0.03;
+    ctx.save(); ctx.translate(cx, cy + wob); ctx.scale(f, 1);
+    // Svans
+    const sw = Math.sin(time / 140) * 0.25;
+    ctx.save(); ctx.translate(-s*0.28, s*0.02); ctx.rotate(-0.5 + sw);
+    ctx.fillStyle = '#d4631f';
+    ctx.beginPath(); ctx.ellipse(-s*0.14, 0, s*0.2, s*0.1, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#f7efe2';
+    ctx.beginPath(); ctx.ellipse(-s*0.29, 0, s*0.07, s*0.065, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    // Kropp
+    ctx.fillStyle = '#e0702a';
+    ctx.beginPath(); ctx.ellipse(-s*0.04, s*0.06, s*0.27, s*0.19, 0, 0, Math.PI * 2); ctx.fill();
+    // Huvud
+    ctx.beginPath(); ctx.ellipse(s*0.2, -s*0.08, s*0.17, s*0.15, 0, 0, Math.PI * 2); ctx.fill();
+    // Öron
+    ctx.beginPath(); ctx.moveTo(s*0.08, -s*0.16); ctx.lineTo(s*0.1, -s*0.38); ctx.lineTo(s*0.2, -s*0.2); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(s*0.2, -s*0.2); ctx.lineTo(s*0.27, -s*0.4); ctx.lineTo(s*0.32, -s*0.17); ctx.fill();
+    // Nos med vit kind
+    ctx.fillStyle = '#f7efe2';
+    ctx.beginPath(); ctx.moveTo(s*0.18, -s*0.02); ctx.lineTo(s*0.46, -s*0.04); ctx.lineTo(s*0.24, s*0.06); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#1a120b';
+    ctx.beginPath(); ctx.arc(s*0.45, -s*0.04, s*0.035, 0, Math.PI * 2); ctx.fill();
+    // Arga ögon
+    ctx.beginPath(); ctx.arc(s*0.25, -s*0.11, s*0.03, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#1a120b'; ctx.lineWidth = Math.max(1, s * 0.03);
+    ctx.beginPath(); ctx.moveTo(s*0.19, -s*0.18); ctx.lineTo(s*0.3, -s*0.14); ctx.stroke();
+    // Ben
+    ctx.fillStyle = '#2b1d12';
+    const ls = Math.sin(fox.step) * s * 0.07;
+    ctx.fillRect(-s*0.2 + ls, s*0.2, s*0.06, s*0.13);
+    ctx.fillRect(s*0.08 - ls, s*0.2, s*0.06, s*0.13);
+    ctx.restore();
+  }
+
+  function drawHog(cx, cy, s, time) {
+    const f = hog.face, moving = !!hog.dir;
+    const wob = moving ? Math.sin(hog.step) * s * 0.03 : 0;
+    ctx.save(); ctx.translate(cx, cy + wob); ctx.scale(f, 1);
+    // Taggar
+    ctx.fillStyle = '#5b3f26';
+    const R = s * 0.38;
+    ctx.beginPath();
+    for (let i = 0; i <= 10; i++) {
+      const a = Math.PI * 0.95 + (i / 10) * Math.PI * 1.15;
+      const rr = i % 2 ? R : R * 1.28;
+      ctx.lineTo(Math.cos(a) * rr - s*0.05, Math.sin(a) * rr);
+    }
+    ctx.closePath(); ctx.fill();
+    // Kropp
+    ctx.fillStyle = '#7a5a3a';
+    ctx.beginPath(); ctx.ellipse(-s*0.04, 0, R, R*0.82, 0, 0, Math.PI * 2); ctx.fill();
+    // Ansikte
+    ctx.fillStyle = '#d9b48a';
+    ctx.beginPath(); ctx.ellipse(s*0.2, s*0.06, s*0.2, s*0.16, 0.15, 0, Math.PI * 2); ctx.fill();
+    // Nos
+    ctx.fillStyle = '#2b1d12';
+    ctx.beginPath(); ctx.arc(s*0.39, s*0.08, s*0.05, 0, Math.PI * 2); ctx.fill();
+    // Öga (blinkar ibland)
+    const blink = (time % 3200) < 120;
+    ctx.fillStyle = '#1a120b';
+    if (blink) { ctx.fillRect(s*0.15, s*0.0, s*0.08, s*0.02); }
+    else { ctx.beginPath(); ctx.arc(s*0.19, s*0.0, s*0.045, 0, Math.PI * 2); ctx.fill(); }
+    // Fötter
+    ctx.fillStyle = '#2b1d12';
+    const fs = moving ? Math.sin(hog.step) * s * 0.06 : 0;
+    ctx.beginPath(); ctx.ellipse(-s*0.14 + fs, s*0.3, s*0.07, s*0.04, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(s*0.1 - fs, s*0.3, s*0.07, s*0.04, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+
+  // ---------- Loop ----------
+  let last = performance.now();
+  function loop(now) {
+    const dt = Math.min((now - last) / 1000, 0.05); last = now;
+    if (running && !paused) update(dt);
+    if (grid) draw(now);
+    requestAnimationFrame(loop);
+  }
+
+  // Visa en bana bakom startrutan
+  startLevel();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
