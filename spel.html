@@ -15,7 +15,7 @@
   }
   #hud a { color: #fff; pointer-events: auto; font-size: 15px; font-weight: 500; }
   #start {
-    position: fixed; inset: 0; display: grid; place-items: center; text-align: center;
+    position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; text-align: center;
     background: rgba(0,0,0,.45); color: #fff; padding: 16px;
   }
   #start h1 { font-size: clamp(36px, 8vw, 72px); margin: 0 0 8px; color: #FFE135; text-shadow: 0 4px 12px rgba(0,0,0,.4); }
@@ -41,6 +41,17 @@
 
 <script src="lib/three.min.js"></script>
 <script>
+  // If lib/ is missing (e.g. only this file was downloaded), fetch three.js from the internet instead
+  if (!window.THREE) document.write('<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"><\/script>');
+</script>
+<script>
+if (!window.THREE) {
+  document.getElementById('result').textContent =
+    'Kunde inte ladda 3D-motorn. Öppna spel.html från repo-mappen (med mappen lib bredvid) eller anslut till internet.';
+  document.getElementById('go').disabled = true;
+  document.getElementById('go').textContent = 'Kan inte starta';
+  throw new Error('three.js did not load');
+}
 // ---- Scene ----
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
