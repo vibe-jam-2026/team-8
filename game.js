@@ -1,5 +1,5 @@
 // Museum Aurora 3D: a third-person night-guard game.
-// Find six gold stars, open the vault, take the crown. Do NOT press the button in Naturhistoria.
+// Find seven gold stars, open the vault, take the crown. Do NOT press the button in Naturhistoria.
 (() => {
 'use strict';
 const $ = id => document.getElementById(id);
@@ -23,8 +23,9 @@ const ROOMS = {
   mineral: { name: 'Mineralrummet',   sub: 'Sal 5 · Geologi',       grid: [0, 1], wall: 0x1a1c36, floor: 'stone',    light: 0x7080ff, li: 0.12 },
   egypt:   { name: 'Egyptiska salen', sub: 'Sal 6 · Antiken',       grid: [1, 1], wall: 0x9a7f48, floor: 'sand',     light: 0xffa850, li: 0.45 },
   skatt:   { name: 'Skattkammaren',   sub: 'Valvet',                grid: [1, 0], wall: 0x2c1d3e, floor: 'carpet',   light: 0xd090ff, li: 0.4 },
+  flyg:    { name: 'Flyghallen',      sub: 'Sal 7 · Flyg',          grid: [2, 1], wall: 0x59616c, floor: 'concrete', light: 0xdde8ff, li: 0.38, flicker: true },
 };
-const LINKS = [['entre', 'natur'], ['entre', 'konst'], ['entre', 'egypt'], ['konst', 'modern'], ['natur', 'mineral'], ['egypt', 'skatt']];
+const LINKS = [['entre', 'natur'], ['entre', 'konst'], ['entre', 'egypt'], ['konst', 'modern'], ['natur', 'mineral'], ['egypt', 'skatt'], ['egypt', 'flyg']];
 const byGrid = {}; for (const k in ROOMS) byGrid[ROOMS[k].grid.join(',')] = k;
 const center = k => ({ x: ROOMS[k].grid[0] * W, z: ROOMS[k].grid[1] * D });
 const roomAt = (x, z) => byGrid[Math.round(x / W) + ',' + Math.round(z / D)];
@@ -34,7 +35,7 @@ function neighbor(k, side) { const [c, r] = ROOMS[k].grid; const d = { n: [0, -1
 // ---------- state ----------
 const S = { started: false, busy: false, dead: false, won: false, sound: true, t0: 0, stars: new Set(), room: 'entre',
   yaw: 0, pitch: 0.3, keys: {}, plaque: false, cine: false, shake: 0, alarm: false, bleed: null, drip: 0, pool: 0, unlocked: false };
-const STAR_TOTAL = 6;
+const STAR_TOTAL = 7;
 
 // ---------- renderer ----------
 const canvas = $('c');
@@ -536,7 +537,7 @@ function buildVaultDoor() {
   addMesh(lockDoor, new THREE.BoxGeometry(DOOR, DOOR_H, .25), [M.steel, M.steel, M.steel, M.steel, mat(0xffffff, { map: lockTex, metalness: .5, roughness: .4 }), M.steel], 0, DOOR_H / 2, 0);
   lockCol = { x: c.x, z: zb, hw: DOOR / 2, hd: .4 }; colliders.push(lockCol);
   interacts.push({ room: 'egypt', x: c.x, z: zb + 1.3, r: 1.8, get label() { return S.unlocked ? null : `Valvdörren (låst, ${S.stars.size}/${STAR_TOTAL})`; },
-    use: () => { sfx.locked(); showPlaque('Valvdörren är låst', 'Ståldörr med tidslås', `Ett mekaniskt lås med sex stjärnformade skåror. Du har hittat ${S.stars.size} av ${STAR_TOTAL} guldstjärnor.`); } });
+    use: () => { sfx.locked(); showPlaque('Valvdörren är låst', 'Ståldörr med tidslås', `Ett mekaniskt lås med sju stjärnformade skåror. Du har hittat ${S.stars.size} av ${STAR_TOTAL} guldstjärnor.`); } });
 }
 function drawLock() {
   const { canvas: cv, g } = lockTex.userData, w = cv.width, h = cv.height;
@@ -674,7 +675,7 @@ function updateDrips(dt) {
   const board = new THREE.Group(); addMesh(board, new THREE.PlaneGeometry(2.4, 1.8), mat(0xffffff, { map: mapTex }), 0, 0, .04); addMesh(board, new THREE.BoxGeometry(2.6, 2, .06), M.darkWood, 0, 0, 0);
   onWall(board, 'entre', 'n', -6, 2, ['Planritning', 'Informationstavla', 'Entrén ligger mitt på bottenvåningen. Till vänster: Naturhistoria. Till höger: Konstgalleriet. Rakt fram: Egyptiska salen. Längst in sägs det finnas ett valv som ingen nattvakt sett öppet.']);
   plant('entre', -8, 5.5, ['Monstera deliciosa', 'Krukväxt, ej till salu', 'Museets mest fotograferade föremål, enligt besöksstatistiken. Vattnas varje tisdag av vaktmästare Berit.']);
-  desk('entre', 5, -4, ['Biljettdisken', 'Ek och mässing, 1912', 'Här köper besökarna biljett på dagtid. Ringklockan har ringts uppskattningsvis 1,4 miljoner gånger. På disken ligger en lapp: ”Sex stjärnor. Sex salar. Kronan väntar.”']);
+  desk('entre', 5, -4, ['Biljettdisken', 'Ek och mässing, 1912', 'Här köper besökarna biljett på dagtid. Ringklockan har ringts uppskattningsvis 1,4 miljoner gånger. På disken ligger en lapp: ”Sju stjärnor. Sju salar. Kronan väntar.”']);
   const doors = new THREE.Group(); for (const s of [-.8, .8]) { addMesh(doors, new THREE.BoxGeometry(1.55, 3.4, .1), M.darkWood, s, 1.7, 0); addMesh(doors, new THREE.SphereGeometry(.07, 8, 6), M.gold, s * .2, 1.5, .08); }
   onWall(doors, 'entre', 's', 0, 0, ['Ytterdörrarna', 'Ek, 1912', 'Låsta för natten. Nyckeln sitter hos vaktchefen, som gick hem klockan fem. Du kommer inte ut härifrån förrän i morgon bitti.'], .05);
   addStar('entre', 5.6, .5, -6.3);
@@ -705,9 +706,9 @@ function updateDrips(dt) {
   // Egyptiska salen
   sarcophagus('egypt', -6, -1, ['Sarkofag åt Neferet', 'Nya riket, ca 1300 f.Kr.', 'Neferet var skrivare vid templet. Inskriptionen ber besökaren att säga hennes namn högt, så att hon aldrig glöms bort. Säg det gärna nu.']);
   const gl1 = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 4 * .8), mat(0xffffff, { map: glyphTex(4, 5, 9) }));
-  onWall(gl1, 'egypt', 'w', 2, 2.2, ['Hieroglyfer', 'Kopia av tempelvägg', 'Översatt lyder texten ungefär: ”Den som söker sex stjärnor ska finna en krona.” Konstigt sammanträffande.']);
+  onWall(gl1, 'egypt', 'w', 2, 2.2, ['Hieroglyfer', 'Kopia av tempelvägg', 'Översatt lyder texten ungefär: ”Den som söker sju stjärnor ska finna en krona.” Konstigt sammanträffande.']);
   const gl2 = new THREE.Mesh(new THREE.PlaneGeometry(4, 2.4), mat(0xffffff, { map: glyphTex(5, 3, 17) }));
-  onWall(gl2, 'egypt', 'e', 0, 2.2, ['Offerlista', 'Kalksten', 'En lista över gåvor till gudarna: bröd, öl, gäss och tre korgar fikon. Gudarna verkar ha varit hungriga.']);
+  onWall(gl2, 'egypt', 'e', 4.6, 2.2, ['Offerlista', 'Kalksten', 'En lista över gåvor till gudarna: bröd, öl, gäss och tre korgar fikon. Gudarna verkar ha varit hungriga.']);
   urn('egypt', 6, -5, 1, 0xa8552f, ['Kanopisk kruka', 'Lera, ca 1100 f.Kr.', 'Användes vid balsamering. Den här är tom, sägs det.']);
   urn('egypt', 7.6, -4, .8, 0x3f6f7d, ['Kruka med lock', 'Fajans', 'Den blåa glasyren har behållit färgen i 3000 år, bättre än de flesta köksmöbler.']);
   addStar('egypt', 8.9, .4, -6.8);
@@ -899,6 +900,7 @@ const sfx = {
     for (const f of [41, 41.7, 61.5]) { const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; o.connect(lp); o.start(t); }
     const hi = ac.createOscillator(), hg = ac.createGain(), lfo = ac.createOscillator(), lg = ac.createGain(); hi.frequency.value = 932; hg.gain.value = 0; lfo.frequency.value = .07; lg.gain.value = .006; lfo.connect(lg).connect(hg.gain); hi.connect(hg).connect(master); hi.start(t); lfo.start(t); },
   step() { if (!A()) return; const t = ac.currentTime; hiss(t, .004, .1, .07, 'lowpass', 420, 0, 1); hiss(t, .002, .025, .03, 'highpass', 3500, 0, 1); },
+  jet() { if (!A()) return; const t = ac.currentTime; hiss(t, .4, .5, 2.2, 'lowpass', 120, 900, 1); tone('sawtooth', 48, 70, t, .4, .08, 2, wet(.4)); }, // Flyghallen: provtändning
   star() { if (!A()) return; const t = ac.currentTime; [880, 1175, 1568, 2093].forEach((f, i) => tone('triangle', f, f, t + i * .08, .01, .12, .3)); },
   creak() { if (!A()) return; const t = ac.currentTime; hiss(t, .4, .05, 1, 'bandpass', 240 + Math.random() * 100, 600 + Math.random() * 300, 16); if (Math.random() < .4) tone('sine', 60, 38, t + .6, .01, .12, .6); },
   unlock() { if (!A()) return; const t = ac.currentTime; hiss(t, .1, .35, 2, 'lowpass', 160, 90, 1); [523, 659, 784, 1047].forEach((f, i) => tone('triangle', f, f, t + .4 + i * .12, .01, .1, .4)); },
@@ -990,7 +992,7 @@ function win() {
   if (S.busy) return; S.busy = true; S.won = true; hidePlaque(); setPrompt(null); sfx.win();
   if (crownObj) crownObj.visible = false;
   const secs = (performance.now() - S.t0) / 1000;
-  $('winText').textContent = `Du hittade alla sex stjärnor, öppnade valvet och räddade Aurorakronan på ${fmt(secs)}. Och du lät bli knappen. Klokt.`;
+  $('winText').textContent = `Du hittade alla sju stjärnor, öppnade valvet och räddade Aurorakronan på ${fmt(secs)}. Och du lät bli knappen. Klokt.`;
   setTimeout(() => { $('win').hidden = false; }, 600);
 }
 
@@ -1367,7 +1369,7 @@ function tick() {
   }
   // stars
   for (const s of stars) {
-    if (!s.visible) continue; s.rotation.y += dt * 2; s.position.y = s.userData.y + Math.sin(t * 2.5 + s.position.x) * .06;
+    if (!s.visible || s.userData.flying) continue; s.rotation.y += dt * 2; s.position.y = s.userData.y + Math.sin(t * 2.5 + s.position.x) * .06;
     if (S.started && !S.busy && Math.hypot(s.position.x - guard.p.position.x, s.position.z - guard.p.position.z) < 1.05) {
       s.visible = false; S.stars.add(s.userData.room); sfx.star(); $('stars').textContent = S.stars.size; drawLock();
       if (S.stars.size === STAR_TOTAL) { subtitle('Alla stjärnor! Ett tungt lås öppnas i Egyptiska salen…', 3500); openVault(); }
@@ -1418,6 +1420,9 @@ function openVault() {
   const i = colliders.indexOf(lockCol); if (i >= 0) colliders.splice(i, 1);
   tween(2500, k => { lockDoor.position.y = DOOR_H * ease(k); });
 }
+// Flyghallen (Sal 7, rooms/flyghallen-skrack.js): knappen för provtändning ger en guldstjärna
+if (window.buildFlyghallenSkrack) window.buildFlyghallenSkrack({ THREE, K: 'flyg', scene, H, center, group, addMesh, collide, info, interacts, addStar, stars, mat, M, hazardTex,
+  guard, S, sfx, subtitle, showPlaque, hidePlaque, setPrompt, tween, wait, anims });
 setRoomHud('entre');
 tick();
 addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });

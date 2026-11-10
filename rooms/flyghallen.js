@@ -2,7 +2,9 @@
 // Tre flygplansmodeller och en knapp för provtändning. Den som trycker får se
 // efterbrännkammaren tändas, och ur motorn skjuts en guldstjärna ut.
 import * as THREE from '../vendor/three.module.min.js';
-import { buildCanardJet, buildDeltaFighter, buildDoubleDeltaJet } from './flygplan.js';
+import './flygplan.js';
+
+const { buildCanardJet, buildDeltaFighter, buildDoubleDeltaJet } = window.makeAircraft(THREE);
 
 const SCALE = 0.4; // modellerna är utställningsmodeller, inte fullskaliga plan
 const HANG_SCALE = 0.34;

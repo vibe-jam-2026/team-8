@@ -73,7 +73,7 @@ kbd{display:inline-block;background:var(--gold);color:#2a2112;border-radius:5px;
 <div id="hud">
   <div class="room"><small id="roomSub">Bottenvåningen</small><span id="roomName">Entréhallen</span></div>
   <div class="stats">
-    <span class="pill" title="Guldstjärnor">★ <b id="stars">0</b>/6</span>
+    <span class="pill" title="Guldstjärnor">★ <b id="stars">0</b>/7</span>
     <span class="pill" title="Tid">⏱ <span id="timer">0:00</span></span>
     <button id="soundBtn" type="button" aria-pressed="true">Ljud på</button>
   </div>
@@ -99,7 +99,7 @@ kbd{display:inline-block;background:var(--gold);color:#2a2112;border-radius:5px;
   <div class="card">
     <div class="kicker">Nattskift</div>
     <h1>Museum Aurora</h1>
-    <p>Du är nattvakt. Lamporna fladdrar, något i Naturhistoria följer dig med blicken, och små nunnor vandrar runt i salarna. Någon har gömt <b>sex guldstjärnor</b> i salarna, och bara när alla är hittade öppnas valvet till skattkammaren.</p>
+    <p>Du är nattvakt. Lamporna fladdrar, något i Naturhistoria följer dig med blicken, och små nunnor vandrar runt i salarna. Någon har gömt <b>sju guldstjärnor</b> i salarna, och bara när alla är hittade öppnas valvet till skattkammaren.</p>
     <ul>
       <li><b>W/S</b> eller <b>↑/↓</b> för att gå, <b>A/D</b> eller <b>←/→</b> för att svänga. <b>Shift</b> för att springa.</li>
       <li><b>F</b> tänder och släcker ficklampan. Det är helt mörkt i museet.</li>
@@ -135,6 +135,8 @@ kbd{display:inline-block;background:var(--gold);color:#2a2112;border-radius:5px;
 <script>
 if (!window.THREE) document.getElementById('intro').innerHTML = '<div class="card"><h1>Kunde inte starta</h1><p>3D-motorn (lib/three.min.js) gick inte att ladda.</p></div>';
 </script>
+<script src="rooms/flygplan.js"></script>
+<script src="rooms/flyghallen-skrack.js"></script>
 <script src="game.js"></script>
 </body>
 </html>
