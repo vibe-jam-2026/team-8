@@ -611,6 +611,19 @@ function hangPortraits() {
     egypt: [['n', -5], ['n', 5], ['s', -5], ['s', 5], ['w', -5], ['e', 5], ['e', -5]],
     skatt: [['n', 0], ['n', -6], ['n', 6], ['e', 0], ['w', 0]],
   };
+  // the team's four photo portraits (from the team's version)
+  const teamPhoto = (k, side, along, y, w, h, src, inf) => {
+    const tex = new THREE.TextureLoader().load(src); tex.encoding = THREE.sRGBEncoding; tex.anisotropy = MAX_ANISO;
+    const gp = new THREE.Group();
+    gp.add(new THREE.Mesh(new THREE.BoxGeometry(w + .22, h + .22, .1), M.gold));
+    const pic = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat(0xffffff, { map: tex, roughness: .55 })); pic.position.z = .052; gp.add(pic);
+    onWall(gp, k, side, along, y, inf, .03);
+  };
+  const TP = window.TEAM_PHOTOS || {};
+  teamPhoto('entre', 's', 3, 2.2, 1.2, 1.55, TP.p1 || 'assets/portrait-1.jpg', ['Mannen som aldrig blinkade', 'Porträtt, 2026. Pigment på papper', 'Porträttet hänger i entrén för att hälsa besökarna välkomna. Vakterna säger att blicken följer en genom hela hallen.']);
+  teamPhoto('modern', 'e', -2.5, 2.3, 1.5, 1.5, TP.p2 || 'assets/portrait-2.jpg', ['Kvinna i kopparljus', 'Porträtt, 2026. Olja på duk (påstås det)', 'Konstexperterna är oense om detta är en målning eller ett mobilfoto i guldram. Museet har bestämt att det inte spelar någon roll.']);
+  teamPhoto('egypt', 'w', -2.4, 2.3, 1.2, 1.6, TP.p3 || 'assets/portrait-3.jpg', ['Mannen med besöksbrickan', 'Porträtt, 2026', 'Han kom in med en besöksbricka för en guidad tur och gick aldrig hem. Nu hänger han här, bland de andra skatterna.']);
+  teamPhoto('natur', 'w', 0, 2.3, 1.2, 1.6, TP.p4 || 'assets/portrait-4.jpg', ['Den förra nattvakten', 'Porträtt, 2026', 'Sägs föreställa museets förra nattvakt. Han slutade efter att ha tryckt på en viss knapp.']);
   let i = 0;
   for (const k in spots) for (const [side, along] of spots[k]) portrait(k, side, along, 2.25, i++ % 3 === 0 ? 'normal' : PVARIANTS[1 + Math.floor(Math.random() * (PVARIANTS.length - 1))]);
 }
@@ -751,9 +764,13 @@ const guard = {};
   const head = new THREE.Group(); head.position.y = 1.66; body.add(head); guard.head = head;
   addMesh(head, new THREE.CylinderGeometry(.075, .085, .12, 12), skin, 0, .06, 0);
   guard.headStump = addMesh(head, new THREE.CylinderGeometry(.085, .085, .02, 12), mat(0x6a0000, { roughness: .3 }), 0, -.005, 0); guard.headStump.visible = false;
-  addMesh(head, new THREE.SphereGeometry(.17, 24, 18), skin, 0, .27, 0).scale.set(1, 1.1, 1.02);
-  for (const s of [-1, 1]) { addMesh(head, new THREE.SphereGeometry(.035, 10, 8), skin, .17 * s, .27, 0).scale.set(.5, 1, .8); addMesh(head, new THREE.SphereGeometry(.022, 8, 6), M.black, .06 * s, .3, .155); addMesh(head, new THREE.BoxGeometry(.06, .012, .02), mat(0x3a2414), .06 * s, .345, .158); }
-  addMesh(head, new THREE.SphereGeometry(.03, 8, 6), skin, 0, .25, .17);
+  // the team's photo face, projected straight on from the front so it is not stretched (from the team's version)
+  const faceTex = new THREE.TextureLoader().load((window.TEAM_PHOTOS && TEAM_PHOTOS.guard) || 'assets/player-head.jpg');
+  faceTex.encoding = THREE.sRGBEncoding; faceTex.anisotropy = MAX_ANISO; faceTex.repeat.set(.455, .57); faceTex.offset.set(.274, .262);
+  const HR = .19, faceGeo = new THREE.SphereGeometry(HR, 48, 32, 0, Math.PI), fp = faceGeo.attributes.position, fuv = faceGeo.attributes.uv;
+  for (let i = 0; i < fp.count; i++) fuv.setXY(i, .5 + fp.getX(i) / (2 * HR), .5 + fp.getY(i) / (2 * HR));
+  addMesh(head, faceGeo, mat(0xffffff, { map: faceTex, roughness: .8, emissive: 0xffffff, emissiveMap: faceTex, emissiveIntensity: .15 }), 0, .27, 0).scale.set(.8, 1.05, .9);
+  addMesh(head, new THREE.SphereGeometry(HR, 48, 32, Math.PI, Math.PI), mat(0x6b4a2e, { roughness: .9 }), 0, .27, 0).scale.set(.8, 1.05, .9);
   addMesh(head, new THREE.CylinderGeometry(.18, .175, .12, 24), uni, 0, .43, 0);
   addMesh(head, new THREE.CylinderGeometry(.181, .181, .03, 24), M.gold, 0, .39, 0);
   addMesh(head, new THREE.CylinderGeometry(.16, .16, .02, 24, 1, false, -Math.PI / 2, Math.PI), M.black, 0, .38, .06);
@@ -992,7 +1009,7 @@ function win() {
   if (S.busy) return; S.busy = true; S.won = true; hidePlaque(); setPrompt(null); sfx.win();
   if (crownObj) crownObj.visible = false;
   const secs = (performance.now() - S.t0) / 1000;
-  $('winText').textContent = `Du hittade alla sju stjärnor, öppnade valvet och räddade Aurorakronan på ${fmt(secs)}. Och du lät bli knappen. Klokt.`;
+  $('winText').textContent = `Du hittade alla sju stjärnor, öppnade valvet, slog Valvgorillan Bruno knockout och räddade Aurorakronan på ${fmt(secs)}. Och du lät bli knappen. Klokt.`;
   setTimeout(() => { $('win').hidden = false; }, 600);
 }
 
@@ -1000,6 +1017,7 @@ function win() {
 addEventListener('keydown', e => {
   A(); if (!S.started) return;
   S.keys[e.code] = true;
+  if (boss.phase === 'fight') { boss.key(e.code); return; } // Slutbossen: W/A/S/D slår
   if (e.code === 'KeyE' || e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); use(); }
   if (e.code === 'Escape') hidePlaque();
   if (e.code === 'KeyF' && !e.repeat) toggleFlash();
@@ -1360,7 +1378,9 @@ function tick() {
   if (S.started && !S.busy) updatePlayer(dt);
   // room
   const k = roomAt(guard.p.position.x, guard.p.position.z);
-  if (k && k !== S.room) { S.room = k; setRoomHud(k); }
+  if (k && k !== S.room) { S.room = k; setRoomHud(k);
+    // Slutbossen: gorillan väntar i Skattkammaren när valvet är öppet
+    if (k === 'skatt' && S.unlocked && S.started && !S.busy && boss.phase === 'idle' && !boss.beaten) boss.start(); }
   // nearest interactable
   if (S.started && !S.busy) {
     let best = null, bd = 1e9; const p = guard.p.position;
@@ -1401,7 +1421,7 @@ function tick() {
   if (S.drip > 0) { S.drip -= dt; if (Math.random() < .6) emitBlood(dino.mouth.getWorldPosition(V3()), V3(0, -1, 0), 1 + (Math.random() * 2 | 0), .4, .5); }
   if (S.pool) { S.pool = Math.min(1.6, S.pool + dt * .3); pool.scale.setScalar(S.pool); }
   updateBlood(dt);
-  updateNuns(dt, t); updateScares(dt); updateDust(dt, t);
+  updateNuns(dt, t); updateScares(dt); updateDust(dt, t); boss.update(dt, t);
   if (S.jump) { S.jump.t -= dt; if (S.jump.t <= 0) { S.jump = null; jumpCanvas.style.display = 'none'; } else drawJump(S.jump.t); }
   speakT -= dt; updateDrips(dt); updatePortraits(dt);
   guard.beam.lookAt(guard.spot.target.getWorldPosition(tmpV));
@@ -1423,10 +1443,22 @@ function openVault() {
 // Flyghallen (Sal 7, rooms/flyghallen-skrack.js): knappen för provtändning ger en guldstjärna
 if (window.buildFlyghallenSkrack) window.buildFlyghallenSkrack({ THREE, K: 'flyg', scene, H, center, group, addMesh, collide, info, interacts, addStar, stars, mat, M, hazardTex,
   guard, S, sfx, subtitle, showPlaque, hidePlaque, setPrompt, tween, wait, anims });
+// ---------- slutbossen: Valvgorillan Bruno (rooms/boss.js) ----------
+const boss = window.MuseumBoss.buildBoss({ THREE, scene, center: center('skatt'), guard, pos: guard.p.position,
+  getHeading: () => guard.p.rotation.y, setHeading: h => { guard.p.rotation.y = h; },
+  setCine: (p, look) => { if (!S.cine) lookNow.copy(camTarget); S.cine = true; cinePos.copy(p); cineLook.copy(look); },
+  clearCine: () => { S.cine = false; S.yaw = guard.p.rotation.y - Math.PI; },
+  tween, wait, shake: v => { S.shake = Math.max(S.shake, v * 2); },
+  beep: (freqs, dur, type, vol) => { if (!A()) return; const t = ac.currentTime; freqs.forEach((f, i) => tone(type, f, f, t + i * dur, .01, vol, dur * 1.8)); },
+  burst: (p, colors, n, speed) => emitBlood(p, UP, n, speed, 1.2),
+  onStart: () => { S.busy = true; S.keys = {}; hidePlaque(); setPrompt(null); },
+  onWin: () => { S.busy = false; win(); },
+  arenaIntensity: 2 });
+
 setRoomHud('entre');
 tick();
 addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
 
 // small hooks for automated testing
-window.__aurora = { S, guard, dino, nuns, faceTex, toggleFlash, cam(pos, look) { S.cine = true; cinePos.set(...pos); cineLook.set(...look); lookNow.set(...look); camera.position.set(...pos); }, teleport(k, x, z, yaw = 0) { const c = center(k); guard.p.position.set(c.x + x, 0, c.z + z); S.yaw = yaw; }, doom, stars, openVault };
+window.__aurora = { S, guard, dino, nuns, faceTex, toggleFlash, boss, interacts, cam(pos, look) { S.cine = true; cinePos.set(...pos); cineLook.set(...look); lookNow.set(...look); camera.position.set(...pos); }, teleport(k, x, z, yaw = 0) { const c = center(k); guard.p.position.set(c.x + x, 0, c.z + z); S.yaw = yaw; }, doom, stars, openVault, boss };
 })();

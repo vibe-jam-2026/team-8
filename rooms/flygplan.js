@@ -1,6 +1,6 @@
 // Flygplansmodeller byggda av enkla former (Måns Flyghall i Museum Aurora).
 // Fabrik som tar emot three.js, så att samma modeller fungerar i båda versionerna av spelet:
-//   museum-team.js (ES-modul, three r170):   import './flygplan.js'; makeAircraft(THREE)
+//   (lagets tidigare modulversion använde samma fabrik med three r170)
 //   game.js (vanligt skript, three r149):    <script src="rooms/flygplan.js"> före game.js
 // Koordinater: nosen pekar mot +Z, Y uppåt, gruppens origo = marken under planet.
 window.makeAircraft = function makeAircraft(THREE) {

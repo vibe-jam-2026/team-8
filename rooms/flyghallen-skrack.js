@@ -1,6 +1,6 @@
 // Flyghallen i skräckversionen (game.js) — Måns sal, Sal 7.
 // Vanligt skript som laddas före game.js. game.js anropar window.buildFlyghallenSkrack(api)
-// när museet möbleras. Flygplanen kommer från rooms/flygplan.js (samma modeller som i museum-team).
+// när museet möbleras. Flygplanen kommer från rooms/flygplan.js (samma modeller som i lagets tidigare version).
 window.buildFlyghallenSkrack = function buildFlyghallenSkrack(api) {
   'use strict';
   const { THREE, K, center, group, addMesh, collide, info, interacts, addStar, stars, mat, M, hazardTex,
