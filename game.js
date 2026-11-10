@@ -1223,15 +1223,16 @@ function buildNun() {
 }
 function randomPoint(k) { const c = center(k); for (let i = 0; i < 30; i++) { const x = c.x + (Math.random() - .5) * 15, z = c.z + (Math.random() - .5) * 11; if (!blocked(x, z, .4)) return V3(x, 0, z); } return V3(c.x, 0, c.z); }
 function doorPoint(k, nb) { const c = center(k); for (const side of ['n', 's', 'w', 'e']) if (neighbor(k, side) === nb) { const d = { n: [0, -1], s: [0, 1], w: [-1, 0], e: [1, 0] }[side]; return V3(c.x + d[0] * (W / 2 - 1.3), 0, c.z + d[1] * (D / 2 - 1.3)); } return randomPoint(k); }
-['entre', 'konst', 'konst', 'modern', 'natur', 'mineral', 'mineral', 'egypt', 'egypt'].forEach(k => {
+// fewer nuns: four that walk, one on the ceiling
+['konst', 'natur', 'mineral', 'egypt'].forEach(k => {
   const n = buildNun(); let p;
   do { p = randomPoint(k); } while (k === 'entre' && p.distanceTo(guard.p.position) < 7);
   n.g.position.copy(p); n.g.rotation.y = Math.random() * 6; n.room = k;
   Object.assign(n, { path: [], wait: Math.random() * 3, speed: .45 + Math.random() * .3, phase: Math.random() * 10, twitch: 0, tilt: 0, cd: 0, scream: 0, jerk: 0, whisperT: 0 });
   nuns.push(n);
 });
-// three more hang upside down from the ceiling, and drop on you
-['konst', 'natur', 'egypt'].forEach(k => {
+// one more hangs upside down from the ceiling, and drops on you
+['egypt'].forEach(k => {
   const n = buildNun(), p = randomPoint(k); n.g.position.set(p.x, H, p.z); n.g.rotation.z = Math.PI; n.room = k; n.ceil = true;
   Object.assign(n, { path: [], wait: Math.random() * 3, speed: .35, phase: Math.random() * 10, twitch: 0, tilt: 0, cd: 0, scream: 0, jerk: 0, whisperT: 0 });
   nuns.push(n);
@@ -1248,6 +1249,7 @@ function nunStep(n, tx, tz, st) { // steer around furniture
   for (const off of [0, .6, -.6, 1.2, -1.2, 1.8, -1.8]) { const a = base + off, x = p.x + Math.sin(a) * st, z = p.z + Math.cos(a) * st; if (stuck || !blocked(x, z, .25)) { p.x = x; p.z = z; return; } }
 }
 function updateNuns(dt, t) {
+  if (S.plaque) { S.hunted = false; return; } // reading a plaque pauses the nuns
   const pp = guard.p.position; let nearest = 99, hunting = false;
   for (const n of nuns) {
     const p = n.g.position, d = Math.hypot(p.x - pp.x, p.z - pp.z);
@@ -1357,7 +1359,7 @@ const grain = $('grain'), grainG = grain.getContext('2d'), grainImg = grainG.cre
 function updateGrain() { const d = grainImg.data; for (let i = 0; i < d.length; i += 4) { const v = Math.random() * 255 | 0; d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 255; } grainG.putImageData(grainImg, 0, 0); }
 let failT = 28 + Math.random() * 15, beatT = 0, farT = 30, grainT = 0, breathT = 0;
 function updateScares(dt) {
-  if (!S.started || S.dead || S.won) return;
+  if (!S.started || S.dead || S.won || S.plaque) return; // paused while a plaque is open
   // the flashlight dies now and then
   failT -= dt;
   if (failT < 0 && S.flash && !S.fail && !S.busy) { S.fail = { t: 2.5 + Math.random() * 2 }; failT = 30 + Math.random() * 30; sfx.lightsOut(); }
