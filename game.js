@@ -557,18 +557,31 @@ function bloodWriting(k, side, along, y, text, w = 4) {
   onWall(new THREE.Mesh(new THREE.PlaneGeometry(w, w * 300 / 1024), new THREE.MeshStandardMaterial({ map: t, transparent: true, roughness: .25 })), k, side, along, y, null, .012);
 }
 
-// ---------- portraits of the man in the photo, all over the museum ----------
-const portraitImg = new Image();
-const PEYES = [[75, 93], [117, 92]], PMOUTH = [97, 125]; // positions in the 200x200 photo
+// ---------- portraits of the people in the photos, all over the museum ----------
+// Five people: the original portrait photo and the team's four photos. Each photo is scaled and moved so the
+// eyes land on the same spot (EYE_AT, in a 200x200 frame), so the bleeding eyes and the carved smile fit every face.
+const TP0 = window.TEAM_PHOTOS || {};
+const PHOTOS = [
+  { src: window.PORTRAIT_PHOTO || 'assets/portrait.jpg', eyes: [[75, 93], [117, 92]], mouth: [97, 125], who: 'man' },
+  { src: TP0.p1 || 'assets/portrait-1.jpg', eyes: [[195, 256], [289, 256]], mouth: [240, 354], who: 'man' },
+  { src: TP0.p2 || 'assets/portrait-2.jpg', eyes: [[169, 118], [243, 124]], mouth: [200, 225], who: 'kvinna' },
+  { src: TP0.p3 || 'assets/portrait-3.jpg', eyes: [[69, 95], [103, 95]], mouth: [87, 132], who: 'man' },
+  { src: TP0.p4 || 'assets/portrait-4.jpg', eyes: [[90, 150], [137, 150]], mouth: [113, 213], who: 'man' },
+];
+const EYE_AT = [[75, 93], [117, 92]];
 const PVARIANTS = ['normal', 'bleeding', 'hollow', 'red', 'scratched', 'smile', 'upside', 'burnt'];
-const portraitTex = {};
-for (const v of PVARIANTS) portraitTex[v] = canvasTex(512, 512, (g, w, h) => { g.fillStyle = '#2a2420'; g.fillRect(0, 0, w, h); });
-function drawPortrait(v) {
-  const { g } = portraitTex[v].userData, w = 512, s = w / 200, R = rng(v.length * 91);
-  g.save(); g.clearRect(0, 0, w, w);
+const portraitTex = PHOTOS.map(() => { const o = {}; for (const v of PVARIANTS) o[v] = canvasTex(512, 512, (g, w, h) => { g.fillStyle = '#2a2420'; g.fillRect(0, 0, w, h); }); return o; });
+function drawPortrait(pi, v) {
+  const P = PHOTOS[pi], img = P.img, { g } = portraitTex[pi][v].userData, w = 512, s = w / 200, R = rng(v.length * 91 + pi * 7);
+  // where this photo goes so its eyes land on EYE_AT
+  const [[ax, ay], [bx, by]] = P.eyes, k = Math.hypot(EYE_AT[1][0] - EYE_AT[0][0], EYE_AT[1][1] - EYE_AT[0][1]) / Math.hypot(bx - ax, by - ay);
+  const ox = (ax + bx) / 2 - (EYE_AT[0][0] + EYE_AT[1][0]) / 2 / k, oy = (ay + by) / 2 - (EYE_AT[0][1] + EYE_AT[1][1]) / 2 / k;
+  const map = ([x, y]) => [(x - ox) * k, (y - oy) * k];
+  const PEYES = P.eyes.map(map), PMOUTH = map(P.mouth);
+  g.save(); g.fillStyle = '#2a2420'; g.fillRect(0, 0, w, w);
   if (v === 'upside') { g.translate(w, w); g.rotate(Math.PI); }
   g.filter = v === 'red' ? 'sepia(1) saturate(7) hue-rotate(-45deg) brightness(.75) contrast(1.3)' : 'sepia(.45) contrast(1.15) brightness(.95)';
-  g.drawImage(portraitImg, 0, 0, 200, 200, 0, 0, w, w); g.filter = 'none';
+  g.drawImage(img, -ox * k * s, -oy * k * s, img.width * k * s, img.height * k * s); g.filter = 'none';
   const vg = g.createRadialGradient(w / 2, w * .45, w * .25, w / 2, w / 2, w * .75); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(10,5,0,.85)'); g.fillStyle = vg; g.fillRect(0, 0, w, w);
   g.strokeStyle = 'rgba(0,0,0,.25)'; g.lineWidth = 1; for (let i = 0; i < 90; i++) { g.beginPath(); let x = R() * w, y = R() * w; g.moveTo(x, y); for (let k = 0; k < 4; k++) { x += (R() - .5) * 40; y += (R() - .5) * 40; g.lineTo(x, y); } g.stroke(); }
   const tears = (n, wide) => { for (const [ex, ey] of PEYES) for (let k = 0; k < n; k++) { const x = ex * s + (R() - .5) * 26, len = 120 + R() * 280, wd = (wide ? 6 : 3) + R() * 5; const gr = g.createLinearGradient(0, ey * s, 0, ey * s + len); gr.addColorStop(0, '#7a0008'); gr.addColorStop(1, '#3a0004'); g.fillStyle = gr; g.fillRect(x, ey * s + 6, wd, len); g.beginPath(); g.arc(x + wd / 2, ey * s + 6 + len, wd * .9, 0, 7); g.fill(); } };
@@ -578,10 +591,9 @@ function drawPortrait(v) {
     g.fillStyle = '#e8dcc0'; for (let k = 0; k < 14; k++) { const x = mx * s - 90 + k * 13, y = my * s - 10 + Math.sin(k / 13 * Math.PI) * 30; g.beginPath(); g.moveTo(x, y); g.lineTo(x + 6, y + 16); g.lineTo(x + 12, y); g.fill(); } tears(1, false); }
   if (v === 'scratched') { for (let k = 0; k < 60; k++) { g.strokeStyle = R() < .5 ? 'rgba(240,230,210,.7)' : 'rgba(0,0,0,.6)'; g.lineWidth = 1 + R() * 3; g.beginPath(); const x = 120 + R() * 270, y = 120 + R() * 260; g.moveTo(x, y); g.lineTo(x + (R() - .5) * 160, y + (R() - .5) * 160); g.stroke(); } }
   if (v === 'burnt') { const gr = g.createRadialGradient(w / 2, w / 2, w * .2, w / 2, w / 2, w * .72); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(.75, 'rgba(255,90,0,.35)'); gr.addColorStop(.85, 'rgba(20,5,0,.95)'); gr.addColorStop(1, '#000'); g.fillStyle = gr; g.fillRect(0, 0, w, w); }
-  g.restore(); portraitTex[v].needsUpdate = true;
+  g.restore(); portraitTex[pi][v].needsUpdate = true;
 }
-portraitImg.onload = () => PVARIANTS.forEach(drawPortrait);
-portraitImg.src = window.PORTRAIT_PHOTO || 'assets/portrait.jpg';
+PHOTOS.forEach((P, pi) => { P.img = new Image(); P.img.onload = () => PVARIANTS.forEach(v => drawPortrait(pi, v)); P.img.src = P.src; });
 const PORTRAIT_TEXTS = [
   'Han har hängt här sedan museet öppnade. Ingen minns vem som målade honom.',
   'Vakterna säger att ögonen följer en genom rummet. Vakterna har slutat jobba här.',
@@ -591,14 +603,15 @@ const PORTRAIT_TEXTS = [
   'Det sägs att han var nattvakt här en gång.',
 ];
 const portraits = [];
-function portrait(k, side, along, y, v) {
+function portrait(k, side, along, y, v, pi) {
   const gp = new THREE.Group();
   const outer = new THREE.Mesh(new THREE.BoxGeometry(1.62, 1.62, .1), M.gold); gp.add(outer);
   const inner = new THREE.Mesh(new THREE.BoxGeometry(1.42, 1.42, .11), mat(0x1a120a, { roughness: .6 })); gp.add(inner);
-  const pic = new THREE.Mesh(new THREE.PlaneGeometry(1.3, 1.3), mat(0xffffff, { map: portraitTex[v], roughness: .5 })); pic.position.z = .062; gp.add(pic);
-  const R = Math.random;
-  const f = onWall(gp, k, side, along, y, ['Porträtt av en okänd man', 'Olja på duk, år okänt', PORTRAIT_TEXTS[Math.floor(R() * PORTRAIT_TEXTS.length)]], .03);
-  portraits.push({ pic, room: k, pos: f.pos, v });
+  const pic = new THREE.Mesh(new THREE.PlaneGeometry(1.3, 1.3), mat(0xffffff, { map: portraitTex[pi][v], roughness: .5 })); pic.position.z = .062; gp.add(pic);
+  const R = Math.random, she = PHOTOS[pi].who === 'kvinna';
+  let text = PORTRAIT_TEXTS[Math.floor(R() * PORTRAIT_TEXTS.length)]; if (she) text = text.replace(/\bHan\b/g, 'Hon').replace(/\bhan\b/g, 'hon').replace(/\bhonom\b/g, 'henne');
+  const f = onWall(gp, k, side, along, y, [`Porträtt av en okänd ${PHOTOS[pi].who}`, 'Olja på duk, år okänt', text], .03);
+  portraits.push({ pic, room: k, pos: f.pos, v, pi });
   if (v === 'bleeding' || v === 'hollow') for (let i = 0; i < 3; i++) addDrip(k, side, along + (R() - .5) * .9, y - .82, .9 + R() * 1.1, .05 + R() * .07, .09); // blood running out of the frame
 }
 function hangPortraits() {
@@ -625,14 +638,14 @@ function hangPortraits() {
   teamPhoto('egypt', 'w', -2.4, 2.3, 1.2, 1.6, TP.p3 || 'assets/portrait-3.jpg', ['Mannen med besöksbrickan', 'Porträtt, 2026', 'Han kom in med en besöksbricka för en guidad tur och gick aldrig hem. Nu hänger han här, bland de andra skatterna.']);
   teamPhoto('natur', 'w', 0, 2.3, 1.2, 1.6, TP.p4 || 'assets/portrait-4.jpg', ['Den förra nattvakten', 'Porträtt, 2026', 'Sägs föreställa museets förra nattvakt. Han slutade efter att ha tryckt på en viss knapp.']);
   let i = 0;
-  for (const k in spots) for (const [side, along] of spots[k]) portrait(k, side, along, 2.25, i++ % 3 === 0 ? 'normal' : PVARIANTS[1 + Math.floor(Math.random() * (PVARIANTS.length - 1))]);
+  for (const k in spots) for (const [side, along] of spots[k]) { portrait(k, side, along, 2.25, i % 3 === 0 ? 'normal' : PVARIANTS[1 + Math.floor(Math.random() * (PVARIANTS.length - 1))], i % PHOTOS.length); i++; }
 }
 // While you are not looking, the portraits in your room change.
 let portraitT = 4;
 function updatePortraits(dt) {
   portraitT -= dt; if (portraitT > 0 || !S.started) return; portraitT = 3 + Math.random() * 4;
   const here = portraits.filter(p => p.room === S.room && !litByFlash(p.pos)); if (!here.length) return;
-  const p = here[Math.floor(Math.random() * here.length)]; p.v = Math.random() < .25 ? 'normal' : PVARIANTS[1 + Math.floor(Math.random() * (PVARIANTS.length - 1))]; p.pic.material.map = portraitTex[p.v];
+  const p = here[Math.floor(Math.random() * here.length)]; p.v = Math.random() < .25 ? 'normal' : PVARIANTS[1 + Math.floor(Math.random() * (PVARIANTS.length - 1))]; p.pic.material.map = portraitTex[p.pi][p.v];
 }
 // ---------- blood running down the walls ----------
 const dripTexs = [0, 1, 2].map(seed => canvasTex(64, 512, (g, w, h) => {
@@ -771,9 +784,14 @@ const guard = {};
   for (let i = 0; i < fp.count; i++) fuv.setXY(i, .5 + fp.getX(i) / (2 * HR), .5 + fp.getY(i) / (2 * HR));
   addMesh(head, faceGeo, mat(0xffffff, { map: faceTex, roughness: .8, emissive: 0xffffff, emissiveMap: faceTex, emissiveIntensity: .15 }), 0, .27, 0).scale.set(.8, 1.05, .9);
   addMesh(head, new THREE.SphereGeometry(HR, 48, 32, Math.PI, Math.PI), mat(0x6b4a2e, { roughness: .9 }), 0, .27, 0).scale.set(.8, 1.05, .9);
-  addMesh(head, new THREE.CylinderGeometry(.18, .175, .12, 24), uni, 0, .43, 0);
-  addMesh(head, new THREE.CylinderGeometry(.181, .181, .03, 24), M.gold, 0, .39, 0);
-  addMesh(head, new THREE.CylinderGeometry(.16, .16, .02, 24, 1, false, -Math.PI / 2, Math.PI), M.black, 0, .38, .06);
+  const hat = new THREE.Group(); hat.position.y = .41; head.add(hat); guard.hat = hat; // flies off when you scream into the mic
+  addMesh(hat, new THREE.CylinderGeometry(.18, .175, .12, 24), uni, 0, .02, 0);
+  addMesh(hat, new THREE.CylinderGeometry(.181, .181, .03, 24), M.gold, 0, -.02, 0);
+  addMesh(hat, new THREE.CylinderGeometry(.16, .16, .02, 24, 1, false, -Math.PI / 2, Math.PI), M.black, 0, -.03, .06);
+  // thumbs up for the win pose (hidden until you win)
+  const thumb = new THREE.Group(); thumb.position.set(0, -.62, 0); thumb.visible = false; guard.armL.add(thumb); guard.thumb = thumb;
+  addMesh(thumb, new THREE.SphereGeometry(.085, 14, 10), skin, 0, 0, 0).scale.set(1, .9, 1.1);
+  addMesh(thumb, new THREE.CapsuleGeometry(.03, .08, 4, 8), skin, 0, .1, 0);
   guard.neck = new THREE.Object3D(); guard.neck.position.y = 1.7; body.add(guard.neck);
   // flashlight: off until you press F
   const spot = new THREE.SpotLight(0xfff0d8, 0, 30, .55, .45, 1.1);
@@ -978,8 +996,11 @@ const sfx = {
 };
 
 // ---------- UI ----------
-function showPlaque(title, meta, text) { $('pTitle').textContent = title; $('pMeta').textContent = meta; $('pText').textContent = text; $('plaque').hidden = false; S.plaque = true; S.plaqueAt = guard.p.position.clone(); }
-function hidePlaque() { $('plaque').hidden = true; S.plaque = false; }
+// the info box sits to the side, see-through, and closes by itself after a few seconds
+const PLAQUE_MS = 4000;
+function showPlaque(title, meta, text) { $('pTitle').textContent = title; $('pMeta').textContent = meta; $('pText').textContent = text; $('plaque').hidden = false; S.plaque = true; S.plaqueAt = guard.p.position.clone();
+  clearTimeout(showPlaque.t); showPlaque.t = setTimeout(hidePlaque, PLAQUE_MS * slow()); }
+function hidePlaque() { clearTimeout(showPlaque.t); $('plaque').hidden = true; S.plaque = false; }
 $('plaqueClose').onclick = hidePlaque;
 function subtitle(text, ms = 2200) { const el = $('sub'); el.textContent = text; el.classList.add('on'); clearTimeout(subtitle.t); subtitle.t = setTimeout(() => el.classList.remove('on'), ms); }
 let current = null;
@@ -996,8 +1017,46 @@ $('soundBtn').onclick = () => { S.sound = !S.sound; $('soundBtn').textContent = 
 function setRoomHud(k) { $('roomName').textContent = ROOMS[k].name; $('roomSub').textContent = ROOMS[k].sub; }
 function fmt(s) { s = Math.floor(s); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
 
+// ---------- easter egg: scream into the microphone and the guard's hat flies off ----------
+const mic = { an: null, buf: null, loud: 0, hatT: 0, hat: null };
+function startMic() {
+  if (mic.an || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !A()) return;
+  navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }).then(stream => {
+    mic.an = ac.createAnalyser(); mic.an.fftSize = 1024; mic.buf = new Float32Array(mic.an.fftSize);
+    ac.createMediaStreamSource(stream).connect(mic.an); // only analysed, never played back
+  }).catch(() => {}); // no mic, or no permission: no easter egg, the game is the same
+}
+function updateMic(dt) {
+  if (mic.hat) updateHat(dt);
+  if (!mic.an) return;
+  mic.an.getFloatTimeDomainData(mic.buf); let sum = 0; for (const v of mic.buf) sum += v * v;
+  const rms = Math.sqrt(sum / mic.buf.length);
+  mic.loud = rms > .22 ? mic.loud + dt : Math.max(0, mic.loud - dt * 2);
+  if (mic.loud > .18 && !mic.hat && S.started && !S.dead && guard.hat.parent === guard.head) hatOff();
+}
+function hatOff() {
+  const h = guard.hat; scene.attach(h); mic.loud = 0;
+  const f = V3(Math.sin(guard.p.rotation.y), 0, Math.cos(guard.p.rotation.y));
+  mic.hat = { v: V3(f.x * .8 + (Math.random() - .5), 5.5, f.z * .8 + (Math.random() - .5)), spin: V3(8 + Math.random() * 6, Math.random() * 4, 5), t: 0, back: false };
+  sfx.click(); subtitle('AAAAH! Hatten flög av!', 1500);
+}
+function updateHat(dt) {
+  const h = guard.hat, m = mic.hat; m.t += dt;
+  if (!m.back) {
+    m.v.y -= 12 * dt; h.position.addScaledVector(m.v, dt);
+    const floor = .09;
+    if (h.position.y < floor) { h.position.y = floor; m.v.multiplyScalar(.4); m.v.y = Math.abs(m.v.y) > 1 ? -m.v.y * .3 : 0; m.spin.multiplyScalar(.5); }
+    if (m.v.y !== 0 || h.position.y > floor + .01) { h.rotation.x += m.spin.x * dt; h.rotation.y += m.spin.y * dt; h.rotation.z += m.spin.z * dt; }
+    if (m.t > 3.5) { m.back = true; m.t = 0; m.from = h.position.clone(); m.q = h.quaternion.clone(); }
+  } else { // after a few seconds it floats back onto the head
+    const k = Math.min(1, m.t / .8), e = ease(k), to = guard.head.localToWorld(V3(0, .41, 0)), q = guard.head.getWorldQuaternion(new THREE.Quaternion());
+    h.position.lerpVectors(m.from, to, e); h.position.y += Math.sin(k * Math.PI) * .8; h.quaternion.copy(m.q).slerp(q, e);
+    if (k >= 1) { guard.head.attach(h); h.position.set(0, .41, 0); h.rotation.set(0, 0, 0); mic.hat = null; }
+  }
+}
+
 function start() {
-  $('intro').hidden = true; S.started = true; S.t0 = performance.now(); A(); music.start();
+  $('intro').hidden = true; S.started = true; S.t0 = performance.now(); A(); music.start(); startMic();
   subtitle('Det är becksvart. Tryck F för att tända ficklampan.', 4500);
 }
 $('startBtn').onclick = start;
@@ -1005,19 +1064,36 @@ const reload = () => { try { sessionStorage.setItem('aurora-skip-intro', '1'); }
 $('retryBtn').onclick = reload; $('againBtn').onclick = reload;
 try { if (sessionStorage.getItem('aurora-skip-intro')) { sessionStorage.removeItem('aurora-skip-intro'); start(); } } catch (e) {}
 
-function win() {
-  if (S.busy) return; S.busy = true; S.won = true; hidePlaque(); setPrompt(null); sfx.win();
+async function win() {
+  if (S.busy) return; S.busy = true; S.won = true; hidePlaque(); setPrompt(null); sfx.win(); S.keys = {};
   if (crownObj) crownObj.visible = false;
   const secs = (performance.now() - S.t0) / 1000;
-  $('winText').textContent = `Du hittade alla sju stjärnor, öppnade valvet, slog Valvgorillan Bruno knockout och räddade Aurorakronan på ${fmt(secs)}. Och du lät bli knappen. Klokt.`;
-  setTimeout(() => { $('win').hidden = false; }, 600);
+  $('winText').textContent = `Du hittade alla sju stjärnor, öppnade valvet, slog Valvgorillan Bruno knockout, klarade hans quiz om Haga slott och räddade Aurorakronan på ${fmt(secs)}. Och du lät bli knappen. Klokt.`;
+  // the camera swings round to the guard, who strikes a cool pose with a thumbs up
+  const p = guard.p.position, c = center(S.room || 'skatt'), side = p.x > c.x ? -1 : 1;
+  const camAt = V3(p.x + side * 2.3, 1.45, p.z + .7);
+  if (!S.cine) lookNow.copy(camTarget); S.cine = true; cinePos.copy(camAt); cineLook.set(p.x, 1.25, p.z);
+  const h0 = guard.p.rotation.y, h1 = h0 + wrap(Math.atan2(camAt.x - p.x, camAt.z - p.z) - h0);
+  const b = guard.body, aL = guard.armL, aR = guard.armR, lL = guard.legL, lR = guard.legR;
+  const r = [b.rotation.x, b.position.y, aL.rotation.x, aL.rotation.z, aR.rotation.x, aR.rotation.z, lL.rotation.x, lR.rotation.x];
+  guard.thumb.visible = true; guard.thumb.scale.setScalar(.01);
+  await tween(900, k => { const e = ease(k);
+    guard.p.rotation.y = h0 + (h1 - h0) * e; b.rotation.x = r[0] * (1 - e); b.rotation.z = .06 * e; b.position.y = r[1] * (1 - e);
+    aL.rotation.x = r[2] + (-1.55 - r[2]) * e; aL.rotation.z = r[3] + (-.25 - r[3]) * e;   // left arm out front: thumbs up
+    aR.rotation.x = r[4] + (.35 - r[4]) * e; aR.rotation.z = r[5] + (.55 - r[5]) * e;      // right hand on the hip
+    lL.rotation.x = r[6] * (1 - e); lR.rotation.x = r[7] * (1 - e); lL.rotation.z = -.12 * e; lR.rotation.z = .12 * e;
+    guard.thumb.rotation.x = -aL.rotation.x; guard.thumb.scale.setScalar(Math.max(.01, e));
+    guard.head.rotation.z = -.12 * e; });
+  sfx.star();
+  await wait(1700);
+  $('win').hidden = false;
 }
 
 // ---------- input ----------
 addEventListener('keydown', e => {
   A(); if (!S.started) return;
   S.keys[e.code] = true;
-  if (boss.phase === 'fight') { boss.key(e.code); return; } // Slutbossen: W/A/S/D slår
+  if (boss.active) { boss.key(e.code); return; } // Slutbossen: W/A/S/D slår, 1–4 svarar i quizet
   if (e.code === 'KeyE' || e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); use(); }
   if (e.code === 'Escape') hidePlaque();
   if (e.code === 'KeyF' && !e.repeat) toggleFlash();
@@ -1149,14 +1225,16 @@ async function doom() {
   emitBlood(headW, V3(0, 1, 0), 260, 4, 3); emitBlood(neckW, V3(0, 1, 0), 200, 5, 1.6);
   S.bleed = { t: 0, acc: 0, beat: -1 }; S.drip = 7;
   await wait(200);
-  // shake the head and pull back
+  // shake the head and pull back, turning the face (with your head in its jaws) toward the camera
   const hit = dino.headPivot.position.clone(), r1 = dino.headPivot.rotation.clone();
+  const camL = dino.g.worldToLocal(cinePos.clone()), cdx = camL.x - start.x, cdz = camL.z - start.z;
+  const camYaw = r1.y + wrap(Math.atan2(-cdz, cdx) - r1.y), camPitch = Math.max(-.3, Math.min(.3, Math.atan2(camL.y - start.y, Math.hypot(cdx, cdz))));
   await tween(900, k => {
-    const e = ease(k); dino.headPivot.position.lerpVectors(hit, start, e);
-    dino.headPivot.rotation.set(Math.sin(k * 22) * .35 * (1 - k), r1.y + (r0.y - r1.y) * e, r1.z + (.35 - r1.z) * e); updateNeck();
+    const e = ease(k), f = ease(Math.min(1, k * 2.5)); dino.headPivot.position.lerpVectors(hit, start, e);
+    dino.headPivot.rotation.set(Math.sin(k * 22) * .35 * (1 - k), r1.y + (camYaw - r1.y) * f, r1.z + (camPitch - r1.z) * f); updateNeck();
   });
   S.phase = 'retracted'; sfx.chew();
-  await wait(800);
+  await wait(1400);
   // the body sinks to its knees, then falls
   await tween(450, k => { const e = ease(k); guard.body.position.y = -.38 * e; guard.legL.rotation.x = guard.legR.rotation.x = -.5 * e; guard.armL.rotation.x = guard.armR.rotation.x = .25 * e; });
   sfx.thud(.5);
@@ -1425,7 +1503,7 @@ function tick() {
   updateBlood(dt);
   updateNuns(dt, t); updateScares(dt); updateDust(dt, t); boss.update(dt, t);
   if (S.jump) { S.jump.t -= dt; if (S.jump.t <= 0) { S.jump = null; jumpCanvas.style.display = 'none'; } else drawJump(S.jump.t); }
-  speakT -= dt; updateDrips(dt); updatePortraits(dt);
+  speakT -= dt; updateDrips(dt); updatePortraits(dt); updateMic(dt);
   guard.beam.lookAt(guard.spot.target.getWorldPosition(tmpV));
   grainT -= dt; if (grainT < 0) { grainT = .07; updateGrain(); }
   for (const f of anims) f(dt, t);
@@ -1462,5 +1540,5 @@ tick();
 addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
 
 // small hooks for automated testing
-window.__aurora = { S, guard, dino, nuns, faceTex, toggleFlash, boss, interacts, cam(pos, look) { S.cine = true; cinePos.set(...pos); cineLook.set(...look); lookNow.set(...look); camera.position.set(...pos); }, teleport(k, x, z, yaw = 0) { const c = center(k); guard.p.position.set(c.x + x, 0, c.z + z); S.yaw = yaw; }, doom, stars, openVault, boss };
+window.__aurora = { S, guard, dino, nuns, faceTex, toggleFlash, boss, interacts, cam(pos, look) { S.cine = true; cinePos.set(...pos); cineLook.set(...look); lookNow.set(...look); camera.position.set(...pos); }, teleport(k, x, z, yaw = 0) { const c = center(k); guard.p.position.set(c.x + x, 0, c.z + z); S.yaw = yaw; }, doom, stars, openVault, boss, portraitTex, hatOff, mic, showPlaque };
 })();
