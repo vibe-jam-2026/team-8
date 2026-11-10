@@ -18,6 +18,15 @@ const WINDOW = 110;         // ms före/efter målet som räknas som träff
 const PERFECT = 45;         // ms för "PERFEKT!"
 const KEYS = ['KeyW', 'KeyA', 'KeyS', 'KeyD'];
 const ease = k => 1 - Math.pow(1 - k, 3);
+// FINAL FIGHT: när Bruno slagits knockout reser han sig och ställer fyra frågor om Haga slott
+// utanför Enköping. Rätt svar = vakten slår, fel svar = Bruno slår. Sista frågan är när slottet byggdes.
+const QUIZ = [
+  {q: 'Vid vilken sjö ligger Haga slott utanför Enköping?', a: ['Vättern', 'Mälaren', 'Hjälmaren', 'Siljan'], ok: 1},
+  {q: 'Vilken adelsman lät bygga det nuvarande slottet?', a: ['Axel Oxenstierna', 'Per Brahe', 'Gustaf Persson Natt och Dag', 'Carl Gustaf Wrangel'], ok: 2},
+  {q: 'Vilken arkitekt ritade slottet?', a: ['Nicodemus Tessin d.ä.', 'Carl Hårleman', 'Fredrik Blom', 'Jean Eric Rehn'], ok: 0},
+  {q: 'Sista frågan: vilket år stod Haga slott färdigbyggt?', a: ['1523', '1754', '1812', '1670'], ok: 3},
+];
+const QKEYS = ['Digit1', 'Digit2', 'Digit3', 'Digit4'];
 
 const CSS = `
 #boss-hud{position:fixed;left:50%;top:76px;transform:translateX(-50%);width:min(520px,calc(100% - 32px));z-index:7;pointer-events:none;text-align:center;font-family:system-ui,sans-serif}
@@ -35,6 +44,17 @@ const CSS = `
 #qte-msg{position:fixed;left:50%;top:calc(70% + 66px);transform:translateX(-50%);z-index:7;font:800 30px/1.2 Georgia,serif;text-shadow:0 3px 14px rgba(0,0,0,.9);pointer-events:none;opacity:0;transition:opacity .25s;white-space:nowrap}
 #qte-msg.show{opacity:1}
 #qte-msg.good{color:#7dff9a}#qte-msg.bad{color:#ff5a5f}#qte-msg.perfect{color:#f2c14e}
+#quiz{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);width:min(600px,calc(100% - 32px));z-index:8;background:rgba(20,16,28,.86);border:1px solid #f2c14e;border-radius:14px;padding:16px 18px;text-align:center;font-family:system-ui,sans-serif;color:#f3ecdf;box-shadow:0 20px 60px rgba(0,0,0,.6);backdrop-filter:blur(3px)}
+#quiz[hidden]{display:none}
+#quiz .qk{font:600 11px/1.6 system-ui,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#ff5a5f}
+#quiz .qq{font:600 20px/1.3 Georgia,serif;margin:4px 0 12px}
+#quiz .qa{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#quiz .qa button{font:500 15px/1.3 system-ui,sans-serif;text-align:left;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.07);border:1px solid #4a4458;color:#f3ecdf;cursor:pointer}
+#quiz .qa button:hover,#quiz .qa button:focus-visible{border-color:#f2c14e;outline:none}
+#quiz .qa button b{display:inline-block;min-width:22px;color:#f2c14e}
+#quiz .qa button.right{background:rgba(60,180,90,.35);border-color:#7dff9a}
+#quiz .qa button.wrong{background:rgba(200,30,40,.35);border-color:#ff5a5f}
+@media (max-width:520px){#quiz .qa{grid-template-columns:1fr}#quiz .qq{font-size:17px}}
 #qte-pad{display:none}
 @media (pointer:coarse){
   #qte-pad{position:fixed;right:20px;bottom:30px;z-index:8;display:grid;grid-template-columns:repeat(3,64px);grid-template-rows:repeat(2,64px);gap:8px}
@@ -111,10 +131,12 @@ function buildBoss({THREE: T3, scene, center, guard, pos, getHeading, setHeading
   const msg = el(`<div id="qte-msg"></div>`);
   const pad = el(`<div id="qte-pad" hidden>${KEYS.map(k => `<button type="button" data-k="${k}">${k.slice(3)}</button>`).join('')}</div>`);
   const ko = el(`<div class="overlay" id="bossKo" hidden><div class="card danger"><div class="kicker">Knockout</div><h1>Bruno vann ronden</h1><p>Gorillan slog dig till golvet. Kronan ligger kvar på sin pall, och Bruno ser nöjd ut. Res dig och försök igen!</p><button class="primary" type="button">Ny rond</button></div></div>`);
-  const bar = hud.querySelector('.bar i'), lives = hud.querySelector('.lives');
+  const quizEl = el(`<div id="quiz" hidden><div class="qk"></div><div class="qq"></div><div class="qa"></div></div>`);
+  quizEl.querySelector('.qa').addEventListener('click', e => { const b = e.target.closest('button'); if (b) answer(+b.dataset.i); });
+  const bar = hud.querySelector('.bar i'), lives = hud.querySelector('.lives'), bname = hud.querySelector('.bname');
   const target = qte.querySelector('.target'), ring = qte.querySelector('.ring');
   pad.addEventListener('pointerdown', e => { const b = e.target.closest('button'); if (b) { e.preventDefault(); key(b.dataset.k); } });
-  ko.querySelector('button').addEventListener('click', () => { ko.hidden = true; fight(); });
+  ko.querySelector('button').addEventListener('click', () => { ko.hidden = true; B.stage === 'quiz' ? quiz() : fight(); });
 
   // --- 3D
   const gor = buildGorilla(); gor.g.visible = false; scene.add(gor.g);
@@ -122,14 +144,15 @@ function buildBoss({THREE: T3, scene, center, guard, pos, getHeading, setHeading
   const GUARD_SPOT = new THREE.Vector3(cx, 0, cz + 3.0), GOR_SPOT = new THREE.Vector3(cx, 0, cz + 1.2);
   const arenaLight = new THREE.PointLight('#ffe2b0', 0, 12, 2); arenaLight.position.set(cx, 3.6, cz + 2.4); scene.add(arenaLight);
 
-  const B = {phase: 'idle', beaten: false, hits: 0, lives: LIVES, beat: null, anim: null, msgTimer: 0, token: 0};
+  const B = {phase: 'idle', stage: 'box', beaten: false, hits: 0, lives: LIVES, beat: null, anim: null, msgTimer: 0, token: 0, qi: 0, locked: false};
 
-  function flash(text, cls) {
+  function flash(text, cls, ms = 650) {
     msg.textContent = text; msg.className = 'show ' + cls;
-    clearTimeout(B.msgTimer); B.msgTimer = setTimeout(() => msg.classList.remove('show'), 650);
+    clearTimeout(B.msgTimer); B.msgTimer = setTimeout(() => msg.classList.remove('show'), ms);
   }
   function drawHud() {
-    bar.style.width = (100 * (1 - B.hits / HITS_NEEDED)) + '%';
+    bar.style.width = (100 * (1 - (B.stage === 'quiz' ? B.qi / QUIZ.length : B.hits / HITS_NEEDED))) + '%';
+    bname.innerHTML = B.stage === 'quiz' ? '<small>FINAL FIGHT · Haga slott-quizet</small>Valvgorillan Bruno' : '<small>Slutboss</small>Valvgorillan Bruno';
     lives.textContent = '♥'.repeat(Math.max(0, B.lives)) + '♡'.repeat(Math.max(0, LIVES - B.lives));
   }
   function setGuardPose() {
@@ -178,7 +201,7 @@ function buildBoss({THREE: T3, scene, center, guard, pos, getHeading, setHeading
   }
 
   function fight() {
-    B.hits = 0; B.lives = LIVES; B.phase = 'fight';
+    B.hits = 0; B.lives = LIVES; B.phase = 'fight'; B.stage = 'box';
     setGuardPose(); setGorillaPose(); gor.g.visible = true; gor.g.position.copy(GOR_SPOT);
     pos.copy(GUARD_SPOT); setHeading(Math.PI);
     hud.hidden = false; drawHud();
@@ -198,6 +221,7 @@ function buildBoss({THREE: T3, scene, center, guard, pos, getHeading, setHeading
   }
 
   function key(code) {
+    if (B.phase === 'quiz') { const i = QKEYS.indexOf(code); if (i >= 0) answer(i); return; }
     if (B.phase !== 'fight' || !B.beat || !KEYS.includes(code)) return;
     const dt = performance.now() - B.beat.t0 - B.beat.dur;
     if (code !== B.beat.key) return miss('Fel tangent!');
@@ -210,17 +234,7 @@ function buildBoss({THREE: T3, scene, center, guard, pos, getHeading, setHeading
   async function hit(text, cls) {
     B.beat = null; qte.hidden = true; pad.hidden = true; B.hits++; drawHud(); flash(text, cls);
     const tok = B.token;
-    // vakten slår, gorillan vacklar
-    const arm = B.hits % 2 ? guard.armR : guard.armL;
-    tone([220, 330], .05, 'square', .1);
-    await tween(110, k => { arm.rotation.x = -1.1 - .55 * k; guard.body.rotation.x = .15 * k; pos.z = GUARD_SPOT.z - .35 * k; });
-    if (tok !== B.token) return;
-    shake(.25); burst(new THREE.Vector3(cx, 2.3, GOR_SPOT.z + .5), ['#fff', '#ffd34d'], 10, 2);
-    tone([70], .08, 'sawtooth', .12);
-    await tween(260, k => { arm.rotation.x = -1.65 + .55 * k; guard.body.rotation.x = .15 * (1 - k); pos.z = GUARD_SPOT.z - .35 * (1 - k);
-      gor.body.rotation.x = -.35 * Math.sin(k * Math.PI); gor.head.rotation.z = .4 * Math.sin(k * Math.PI) * (B.hits % 2 ? 1 : -1); });
-    if (tok !== B.token) return;
-    gor.head.rotation.z = 0;
+    if (!await guardPunch(B.hits, tok)) return;
     if (B.hits >= HITS_NEEDED) return knockout();
     next(350 + Math.random() * 500);
   }
@@ -228,33 +242,107 @@ function buildBoss({THREE: T3, scene, center, guard, pos, getHeading, setHeading
   async function miss(text) {
     B.beat = null; qte.hidden = true; pad.hidden = true; B.lives--; drawHud(); flash(text, 'bad');
     const tok = B.token;
-    // gorillan slår tillbaka
-    const arm = Math.random() < .5 ? gor.armL : gor.armR;
-    tone([110, 90], .08, 'sawtooth', .1);
-    await tween(160, k => { arm.rotation.x = -.2 - 1.35 * ease(k); gor.body.rotation.x = .25 * k; gor.g.position.z = GOR_SPOT.z + .7 * k; });
-    if (tok !== B.token) return;
-    shake(.45); tone([150, 60], .07, 'square', .14); burst(new THREE.Vector3(cx, 1.7, GUARD_SPOT.z - .3), ['#ff5a5f', '#fff'], 12, 2);
-    await tween(350, k => { arm.rotation.x = -1.55 + 1.35 * k; gor.body.rotation.x = .25 * (1 - k); gor.g.position.z = GOR_SPOT.z + .7 * (1 - k);
-      guard.body.rotation.x = -.35 * Math.sin(k * Math.PI); pos.z = GUARD_SPOT.z + .4 * Math.sin(k * Math.PI); });
-    if (tok !== B.token) return;
-    pos.z = GUARD_SPOT.z;
+    if (!await gorillaPunch(tok)) return;
     if (B.lives <= 0) return knockedDown();
     next(450 + Math.random() * 500);
   }
 
-  async function knockout() {
-    B.phase = 'ko'; hud.hidden = true; const tok = B.token;
-    flash('KNOCKOUT!', 'perfect'); tone([60, 50, 40], .25, 'sawtooth', .12);
+  // vakten slår, gorillan vacklar; false om fighten avbröts under tiden
+  async function guardPunch(n, tok) {
+    const arm = n % 2 ? guard.armR : guard.armL;
+    tone([220, 330], .05, 'square', .1);
+    await tween(110, k => { arm.rotation.x = -1.1 - .55 * k; guard.body.rotation.x = .15 * k; pos.z = GUARD_SPOT.z - .35 * k; });
+    if (tok !== B.token) return false;
+    shake(.25); burst(new THREE.Vector3(cx, 2.3, GOR_SPOT.z + .5), ['#fff', '#ffd34d'], 10, 2);
+    tone([70], .08, 'sawtooth', .12);
+    await tween(260, k => { arm.rotation.x = -1.65 + .55 * k; guard.body.rotation.x = .15 * (1 - k); pos.z = GUARD_SPOT.z - .35 * (1 - k);
+      gor.body.rotation.x = -.35 * Math.sin(k * Math.PI); gor.head.rotation.z = .4 * Math.sin(k * Math.PI) * (n % 2 ? 1 : -1); });
+    if (tok !== B.token) return false;
+    gor.head.rotation.z = 0; return true;
+  }
+  // gorillan slår tillbaka
+  async function gorillaPunch(tok) {
+    const arm = Math.random() < .5 ? gor.armL : gor.armR;
+    tone([110, 90], .08, 'sawtooth', .1);
+    await tween(160, k => { arm.rotation.x = -.2 - 1.35 * ease(k); gor.body.rotation.x = .25 * k; gor.g.position.z = GOR_SPOT.z + .7 * k; });
+    if (tok !== B.token) return false;
+    shake(.45); tone([150, 60], .07, 'square', .14); burst(new THREE.Vector3(cx, 1.7, GUARD_SPOT.z - .3), ['#ff5a5f', '#fff'], 12, 2);
+    await tween(350, k => { arm.rotation.x = -1.55 + 1.35 * k; gor.body.rotation.x = .25 * (1 - k); gor.g.position.z = GOR_SPOT.z + .7 * (1 - k);
+      guard.body.rotation.x = -.35 * Math.sin(k * Math.PI); pos.z = GUARD_SPOT.z + .4 * Math.sin(k * Math.PI); });
+    if (tok !== B.token) return false;
+    pos.z = GUARD_SPOT.z; return true;
+  }
+  async function fallDown(tok) { // Bruno faller baklänges
+    tone([60, 50, 40], .25, 'sawtooth', .12);
     await tween(900, k => { gor.body.rotation.x = -Math.PI / 2 * .95 * ease(k); gor.body.position.y = .3 * Math.sin(k * Math.PI);
       gor.armL.rotation.x = -.2 - 2.4 * k; gor.armR.rotation.x = -.2 - 2.4 * k; });
-    if (tok !== B.token) return;
+    if (tok !== B.token) return false;
     shake(.7); burst(new THREE.Vector3(cx, .3, GOR_SPOT.z - 1), ['#6b5a4a', '#9a8a78'], 30, 3);
-    gor.dizzy.visible = true;
+    gor.dizzy.visible = true; return true;
+  }
+
+  async function knockout() {
+    B.phase = 'ko'; hud.hidden = true; const tok = B.token;
+    flash('KNOCKOUT!', 'perfect');
+    if (!await fallDown(tok)) return;
     // vakten jublar
     await tween(700, k => { guard.armL.rotation.x = -1.1 - 1.9 * ease(k); guard.armR.rotation.x = -1.1 - 1.9 * ease(k); guard.armL.rotation.z = -.3 * k; guard.armR.rotation.z = .3 * k; });
     if (tok !== B.token) return;
+    await wait(700);
+    if (tok !== B.token) return;
+    guard.armL.rotation.z = 0; guard.armR.rotation.z = 0; setGuardPose();
+    // ... men Bruno reser sig igen: FINAL FIGHT
+    gor.dizzy.visible = false; tone([70, 90, 110], .2, 'sawtooth', .1);
+    const r0 = gor.body.rotation.x;
+    await tween(1100, k => { const e = ease(k); gor.body.rotation.x = r0 * (1 - e); gor.armL.rotation.x = -2.6 + 2.4 * e; gor.armR.rotation.x = -2.6 + 2.4 * e; });
+    if (tok !== B.token) return;
+    setGorillaPose(); shake(.4);
+    flash('FINAL FIGHT!', 'bad', 1800);
+    await wait(1600);
+    if (tok !== B.token) return;
+    quiz();
+  }
+
+  // ---------- FINAL FIGHT: quizet om Haga slott ----------
+  function quiz() {
+    B.stage = 'quiz'; B.phase = 'quiz'; B.qi = 0; B.lives = LIVES; B.locked = false;
+    setGuardPose(); setGorillaPose(); gor.g.visible = true; gor.g.position.copy(GOR_SPOT); pos.copy(GUARD_SPOT); setHeading(Math.PI);
+    hud.hidden = false; drawHud(); showQuestion();
+  }
+  function showQuestion() {
+    const Q = QUIZ[B.qi];
+    quizEl.querySelector('.qk').textContent = `Bruno frågar · fråga ${B.qi + 1} av ${QUIZ.length}`;
+    quizEl.querySelector('.qq').textContent = Q.q;
+    quizEl.querySelector('.qa').innerHTML = Q.a.map((a, i) => `<button type="button" data-i="${i}"><b>${i + 1}</b> ${a}</button>`).join('');
+    quizEl.hidden = false; B.locked = false;
+  }
+  async function answer(i) {
+    if (B.phase !== 'quiz' || B.locked) return;
+    B.locked = true; const Q = QUIZ[B.qi], tok = B.token, btns = quizEl.querySelectorAll('.qa button');
+    btns[i].classList.add(i === Q.ok ? 'right' : 'wrong');
+    await wait(700);
+    if (tok !== B.token) return;
+    quizEl.hidden = true;
+    if (i === Q.ok) {
+      B.qi++; drawHud(); flash(B.qi >= QUIZ.length ? 'RÄTT! KNOCKOUT!' : 'Rätt!', 'good', 900);
+      if (!await guardPunch(B.qi, tok)) return;
+      if (B.qi >= QUIZ.length) return finalKo();
+    } else {
+      // fel svar: Bruno slår, och samma fråga kommer igen
+      B.lives--; drawHud(); flash('Fel svar!', 'bad', 1000);
+      if (!await gorillaPunch(tok)) return;
+      if (B.lives <= 0) return knockedDown();
+    }
     await wait(500);
-    B.beaten = true; B.phase = 'done'; guard.armL.rotation.z = 0; guard.armR.rotation.z = 0;
+    if (tok !== B.token || B.phase !== 'quiz') return;
+    showQuestion();
+  }
+  async function finalKo() {
+    B.phase = 'ko'; hud.hidden = true; const tok = B.token;
+    if (!await fallDown(tok)) return;
+    await wait(900);
+    if (tok !== B.token) return;
+    B.beaten = true; B.phase = 'done';
     clearCine(); arenaLight.intensity = arenaIntensity * .4;
     onWin();
   }
@@ -274,7 +362,7 @@ function buildBoss({THREE: T3, scene, center, guard, pos, getHeading, setHeading
 
   function update(dt, t) {
     if (!gor.g.visible) return;
-    if (B.phase === 'fight') {
+    if (B.phase === 'fight' || B.phase === 'quiz') {
       // andning och vaggande
       gor.body.position.y = Math.sin(t * 3) * .03; gor.g.rotation.y = Math.sin(t * 1.3) * .08;
       if (B.beat) {
@@ -291,11 +379,11 @@ function buildBoss({THREE: T3, scene, center, guard, pos, getHeading, setHeading
   function reset() {
     B.token++; B.phase = 'idle'; B.beaten = false; B.beat = null;
     gor.g.visible = false; setGorillaPose(); gor.head.rotation.set(0, 0, 0);
-    hud.hidden = true; qte.hidden = true; pad.hidden = true; ko.hidden = true; msg.classList.remove('show');
+    hud.hidden = true; qte.hidden = true; pad.hidden = true; ko.hidden = true; quizEl.hidden = true; msg.classList.remove('show'); B.stage = 'box';
     arenaLight.intensity = 0; guard.armL.rotation.z = 0; guard.armR.rotation.z = 0;
   }
 
-  return {start, key, update, reset, get phase() { return B.phase; }, get beaten() { return B.beaten; }, get beat() { return B.beat; }, B};
+  return {start, key, update, reset, answer, get active() { return B.phase === 'fight' || B.phase === 'quiz'; }, get phase() { return B.phase; }, get beaten() { return B.beaten; }, get beat() { return B.beat; }, B};
 }
 
 window.MuseumBoss = {buildBoss};
